@@ -74,6 +74,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .mi-left{flex:1;min-width:0}
 .mi-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mi-macros{font-size:11px;color:var(--muted);margin-top:1px}
+.mi-foods{font-size:10px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.75}
 .mi-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
 .mi-cals{font-size:15px;font-weight:800;color:var(--primary)}
 .ibtn{width:28px;height:28px;border:none;border-radius:8px;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s;flex-shrink:0}
@@ -217,6 +218,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .servings-inp{width:80px;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-weight:700;text-align:center;color:var(--text);background:var(--bg);outline:none;font-family:inherit;flex-shrink:0}
 .servings-inp:focus{border-color:var(--primary);background:#fff}
 .servings-unit{font-size:12px;color:var(--muted);flex:1}
+/* Multi-food list in meal modal */
+.meal-food-list{margin-bottom:10px;border:1.5px solid var(--border);border-radius:12px;overflow:hidden}
+.meal-food-item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);background:var(--card)}
+.meal-food-item:last-child{border-bottom:none}
+.mfi-info{flex:1;min-width:0}
+.mfi-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mfi-detail{font-size:11px;color:var(--muted);margin-top:1px}
+.mfi-cal{font-size:13px;font-weight:700;color:var(--primary);white-space:nowrap;margin-right:4px}
+.mfi-rm{width:26px;height:26px;border:none;background:none;color:var(--danger);font-size:18px;line-height:1;cursor:pointer;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.mfi-rm:hover{background:rgba(255,59,48,.12)}
+.meal-food-total{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--primary-light)}
+.mft-label{font-size:13px;font-weight:700;color:var(--primary)}
+.mft-macros{font-size:11px;color:var(--primary);opacity:.8}
+.btn-add-food{width:100%;margin-top:10px;padding:10px;border:2px dashed var(--primary);border-radius:12px;background:var(--primary-light);color:var(--primary);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-add-food:hover{background:var(--primary);color:#fff}
 /* Foods view */
 .food-search-wrap{position:relative;margin-bottom:12px}
 .food-search-wrap svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke-width:2.5;fill:none;stroke:var(--muted);pointer-events:none}
@@ -396,13 +412,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
     <!-- Food picker section -->
     <div id="food-picker-wrap" style="display:none">
+      <!-- Added foods list -->
+      <div id="meal-food-list-wrap" style="display:none">
+        <label class="fl">Added Foods</label>
+        <div class="meal-food-list" id="meal-food-items"></div>
+      </div>
+      <!-- Search -->
       <div class="fg">
-        <label class="fl">Search Food</label>
+        <label class="fl">Add a Food</label>
         <input class="fi" id="food-search-meal" type="text" placeholder="Search your food database…" oninput="filterFoodPicker()" autocomplete="off">
         <div class="food-picker-list" id="food-picker-list">
           <div class="fpick-no-results">Start typing to search foods</div>
         </div>
       </div>
+      <!-- Amount + add button -->
       <div id="food-servings-wrap" style="display:none">
         <div id="food-sel-preview" class="food-sel-preview"></div>
         <div class="servings-row">
@@ -410,6 +433,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
           <input class="servings-inp" id="meal-servings" type="number" min="0.1" step="any" value="100" oninput="updateFromFood()">
           <span class="servings-unit" id="servings-unit-lbl"></span>
         </div>
+        <button class="btn-add-food" onclick="addFoodToMeal()">+ Add to Meal</button>
       </div>
     </div>
 
@@ -565,6 +589,7 @@ let pendingMealType = 'breakfast';
 // Meal modal food-source state
 let mealSource = 'custom';
 let selectedFoodId = null;
+let mealFoodItems = []; // [{foodId,name,amount,amountUnit,calories,protein,carbs,fat}]
 
 function defaultState() {
   return {
@@ -715,7 +740,8 @@ function renderMealSections() {
       <div class="mi">
         <div class="mi-left">
           <div class="mi-name trunc">${esc(m.name)}</div>
-          <div class="mi-macros">P${m.protein}g · C${m.carbs}g · F${m.fat}g${m.foodId && m.amount ? ' · '+m.amount+m.amountUnit : ''}</div>
+          <div class="mi-macros">P${m.protein}g · C${m.carbs}g · F${m.fat}g</div>
+          ${m.foodItems && m.foodItems.length ? `<div class="mi-foods">${m.foodItems.map(fi => `${esc(fi.name)} ${fi.amount}${fi.amountUnit}`).join(' + ')}</div>` : ''}
         </div>
         <div class="mi-right">
           <span class="mi-cals">${m.calories}</span>
@@ -783,6 +809,7 @@ function openAddMeal(type) {
   pendingMealType = type;
   mealSource = 'custom';
   selectedFoodId = null;
+  mealFoodItems = [];
   document.getElementById('meal-modal-title').textContent = 'Add Meal';
   document.getElementById('meal-edit-id').value = '';
   document.getElementById('meal-name').value = '';
@@ -804,9 +831,11 @@ function setMealSource(src) {
   document.getElementById('stog-food').classList.toggle('on', src === 'food');
   document.getElementById('food-picker-wrap').style.display = src === 'food' ? '' : 'none';
   if (src === 'food') {
-    document.getElementById('food-search-meal').value = '';
+    mealFoodItems = [];
     selectedFoodId = null;
+    document.getElementById('food-search-meal').value = '';
     document.getElementById('food-servings-wrap').style.display = 'none';
+    document.getElementById('meal-food-list-wrap').style.display = 'none';
     filterFoodPicker();
     setTimeout(() => document.getElementById('food-search-meal').focus(), 100);
   }
@@ -852,13 +881,75 @@ function updateFromFood() {
   const pro = +(food.protein * ratio).toFixed(1);
   const car = +(food.carbs   * ratio).toFixed(1);
   const fat = +(food.fat     * ratio).toFixed(1);
-  document.getElementById('meal-cal').value = cal;
-  document.getElementById('meal-pro').value = pro;
-  document.getElementById('meal-car').value = car;
-  document.getElementById('meal-fat').value = fat;
   document.getElementById('food-sel-preview').innerHTML = `
     <div class="food-sel-name">📦 ${esc(food.name)} — ${amount}${food.servingUnit}</div>
     <div class="food-sel-macros">${cal} kcal · P${pro}g · C${car}g · F${fat}g</div>`;
+}
+
+function addFoodToMeal() {
+  const food = state.foods.find(f => f.id === selectedFoodId);
+  if (!food) { showToast('Select a food first'); return; }
+  const amount = parseNum(document.getElementById('meal-servings').value) || food.servingSize;
+  const ratio = amount / food.servingSize;
+  mealFoodItems.push({
+    foodId: food.id,
+    name: food.name,
+    amount,
+    amountUnit: food.servingUnit,
+    calories: Math.round(food.calories * ratio),
+    protein: +(food.protein * ratio).toFixed(1),
+    carbs:   +(food.carbs   * ratio).toFixed(1),
+    fat:     +(food.fat     * ratio).toFixed(1),
+  });
+  // auto-set meal name from first food
+  if (mealFoodItems.length === 1 && !document.getElementById('meal-name').value)
+    document.getElementById('meal-name').value = food.name;
+  renderMealFoodList();
+  recalcMealTotals();
+  // reset picker for next food
+  selectedFoodId = null;
+  document.getElementById('food-search-meal').value = '';
+  document.getElementById('food-servings-wrap').style.display = 'none';
+  filterFoodPicker();
+  setTimeout(() => document.getElementById('food-search-meal').focus(), 80);
+}
+
+function removeMealFoodItem(idx) {
+  mealFoodItems.splice(idx, 1);
+  renderMealFoodList();
+  recalcMealTotals();
+}
+
+function renderMealFoodList() {
+  const wrap = document.getElementById('meal-food-list-wrap');
+  const container = document.getElementById('meal-food-items');
+  if (!mealFoodItems.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const totalCal = mealFoodItems.reduce((s, i) => s + i.calories, 0);
+  const totalPro = +(mealFoodItems.reduce((s, i) => s + i.protein, 0)).toFixed(1);
+  const totalCar = +(mealFoodItems.reduce((s, i) => s + i.carbs,   0)).toFixed(1);
+  const totalFat = +(mealFoodItems.reduce((s, i) => s + i.fat,     0)).toFixed(1);
+  container.innerHTML = mealFoodItems.map((item, idx) => `
+    <div class="meal-food-item">
+      <div class="mfi-info">
+        <div class="mfi-name">${esc(item.name)}</div>
+        <div class="mfi-detail">${item.amount}${item.amountUnit} · P${item.protein}g · C${item.carbs}g · F${item.fat}g</div>
+      </div>
+      <span class="mfi-cal">${item.calories} kcal</span>
+      <button class="mfi-rm" onclick="removeMealFoodItem(${idx})" title="Remove">×</button>
+    </div>`).join('') + `
+    <div class="meal-food-total">
+      <span class="mft-label">Total: ${totalCal} kcal</span>
+      <span class="mft-macros">P${totalPro}g · C${totalCar}g · F${totalFat}g</span>
+    </div>`;
+}
+
+function recalcMealTotals() {
+  if (!mealFoodItems.length) return;
+  document.getElementById('meal-cal').value = mealFoodItems.reduce((s, i) => s + i.calories, 0);
+  document.getElementById('meal-pro').value = +(mealFoodItems.reduce((s, i) => s + i.protein, 0)).toFixed(1);
+  document.getElementById('meal-car').value = +(mealFoodItems.reduce((s, i) => s + i.carbs,   0)).toFixed(1);
+  document.getElementById('meal-fat').value = +(mealFoodItems.reduce((s, i) => s + i.fat,     0)).toFixed(1);
 }
 
 function openAddMealWithFood(foodId) {
@@ -893,12 +984,11 @@ function submitMeal() {
   const fat = parseNum(document.getElementById('meal-fat').value);
   const eid = document.getElementById('meal-edit-id').value;
   const stf = document.getElementById('meal-save-fav').checked;
-  const foodForMeal = mealSource === 'food' && selectedFoodId ? state.foods.find(f => f.id === selectedFoodId) : null;
-  const amt = foodForMeal ? (parseNum(document.getElementById('meal-servings').value) || foodForMeal.servingSize) : null;
+  const foodItems = mealSource === 'food' && mealFoodItems.length ? [...mealFoodItems] : null;
 
   if (!state.days[currentDate]) state.days[currentDate] = [];
   const entry = {id: eid || uid(), name, type: pendingMealType, calories: cal, protein: pro, carbs: car, fat,
-    ...(foodForMeal ? {foodId: selectedFoodId, amount: amt, amountUnit: foodForMeal.servingUnit} : {})};
+    ...(foodItems ? {foodItems} : {})};
 
   if (eid) {
     const idx = state.days[currentDate].findIndex(m => m.id === eid);

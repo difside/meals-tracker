@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Meal Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -260,14 +261,60 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .food-detail-cell{background:var(--card);border-radius:9px;padding:7px 4px}
 .food-detail-val{font-size:14px;font-weight:800}
 .food-detail-lbl{font-size:10px;color:var(--muted);font-weight:600;margin-top:1px}
+/* Auth screen */
+#auth-screen{position:fixed;inset:0;z-index:200;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
+.auth-wrap{width:100%;max-width:360px;text-align:center}
+.auth-logo{font-size:56px;margin-bottom:12px}
+.auth-title{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+.auth-sub{font-size:14px;color:var(--muted);margin-bottom:32px}
+.auth-btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s;margin-bottom:10px}
+.auth-btn:hover{opacity:.85}
+.auth-btn-google{background:#fff;color:#222;border:1.5px solid var(--border);box-shadow:var(--shadow)}
+.auth-btn-email{background:var(--primary);color:#fff;margin-top:8px}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--muted);font-size:13px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.auth-sent{background:var(--primary-light);color:var(--primary);padding:12px;border-radius:12px;font-size:13px;font-weight:600;margin-top:10px;display:none}
+/* Loading overlay */
+#loading-screen{position:fixed;inset:0;z-index:150;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:14px;color:var(--muted);font-weight:600}
+/* Sign-out btn */
+.signout-btn{padding:8px 14px;border:1.5px solid var(--border);border-radius:10px;background:none;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
+.signout-btn:hover{border-color:var(--danger);color:var(--danger)}
 </style>
 </head>
 <body>
-<div id="app">
+
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-txt">Loading your data…</div>
+</div>
+
+<!-- Auth screen -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-logo">🥗</div>
+    <div class="auth-title">Meal Tracker</div>
+    <div class="auth-sub">Track your nutrition, anywhere</div>
+    <button class="auth-btn auth-btn-google" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-divider"><span>or</span></div>
+    <input class="fi" id="auth-email" type="email" placeholder="your@email.com" style="margin-bottom:8px">
+    <button class="auth-btn auth-btn-email" onclick="signInWithEmail()">✉️ Send Magic Link</button>
+    <div class="auth-sent" id="auth-email-sent">Check your email for the sign-in link!</div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
 <!-- HEADER -->
 <header class="hdr">
   <span style="font-size:22px">🥗</span>
   <div class="hdr-title">Meal Tracker</div>
+  <button class="signout-btn" id="signout-btn" onclick="signOut()" style="display:none">Sign out</button>
 </header>
 
 <!-- MAIN -->
@@ -568,6 +615,176 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 
 <script>
 // ============================================================
+//  SUPABASE CONFIG  — replace these two values with your project's credentials
+//  Dashboard → Project Settings → API
+// ============================================================
+const SUPABASE_URL     = 'YOUR_SUPABASE_URL';       // e.g. https://xyzxyz.supabase.co
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // starts with "eyJ..."
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUserId = null;
+
+// ---- Auth UI helpers ----
+function showAuthUI() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('signout-btn').style.display = 'none';
+}
+function hideAuthUI() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = '';
+  document.getElementById('signout-btn').style.display = '';
+}
+function showLoadingScreen() { document.getElementById('loading-screen').style.display = 'flex'; }
+function hideLoadingScreen() { document.getElementById('loading-screen').style.display = 'none'; }
+
+async function signInWithGoogle() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) showToast('Google sign-in error: ' + error.message);
+}
+async function signInWithEmail() {
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) { showToast('Enter your email address'); return; }
+  const btn = document.querySelector('.auth-btn-email');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { error } = await sb.auth.signInWithOtp({
+    email, options: { emailRedirectTo: window.location.href }
+  });
+  btn.disabled = false; btn.textContent = '✉️ Send Magic Link';
+  if (error) { showToast('Error: ' + error.message); return; }
+  document.getElementById('auth-email-sent').style.display = 'block';
+}
+async function signOut() {
+  await sb.auth.signOut();
+  currentUserId = null;
+  state = defaultState();
+  showAuthUI();
+  showToast('Signed out');
+}
+function showCloudError() { showToast('⚠️ Sync error — data saved locally'); }
+
+// ---- Cloud load ----
+async function loadStateCloud(userId) {
+  const [goalsRes, mealsRes, favsRes, foodsRes] = await Promise.all([
+    sb.from('user_goals').select('*').eq('user_id', userId).maybeSingle(),
+    sb.from('meals').select('*').eq('user_id', userId).order('created_at'),
+    sb.from('favorites').select('*').eq('user_id', userId),
+    sb.from('foods').select('*').eq('user_id', userId),
+  ]);
+  const days = {};
+  for (const m of mealsRes.data || []) {
+    const d = String(m.date).substring(0, 10);
+    if (!days[d]) days[d] = [];
+    days[d].push({ id: m.id, name: m.name, type: m.type,
+      calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat,
+      ...(m.food_items ? {foodItems: m.food_items} : {}),
+      ...(m.fav_id    ? {favId:     m.fav_id}     : {}) });
+  }
+  const favorites = (favsRes.data || []).map(f => ({
+    id: f.id, name: f.name,
+    calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+    pinned: f.pinned, pinnedType: f.pinned_type || null,
+  }));
+  const foods = (foodsRes.data || []).map(f => ({
+    id: f.id, name: f.name,
+    servingSize: f.serving_size, servingUnit: f.serving_unit,
+    calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+  }));
+  return {
+    goals: goalsRes.data
+      ? { calories: goalsRes.data.calories, protein: goalsRes.data.protein,
+          carbs: goalsRes.data.carbs,       fat: goalsRes.data.fat }
+      : defaultState().goals,
+    days, favorites, foods,
+  };
+}
+
+// ---- Cloud sync (fire-and-forget) ----
+function cloudSyncMeal(entry, date) {
+  if (!currentUserId) return;
+  sb.from('meals').upsert({
+    id: entry.id, user_id: currentUserId, date,
+    name: entry.name, type: entry.type,
+    calories: entry.calories, protein: entry.protein,
+    carbs: entry.carbs, fat: entry.fat,
+    food_items: entry.foodItems || null,
+    fav_id: entry.favId || null,
+  }).then(({error}) => { if (error) showCloudError(); });
+}
+function cloudDeleteMeal(id) {
+  if (!currentUserId) return;
+  sb.from('meals').delete().eq('id', id).then(({error}) => { if (error) showCloudError(); });
+}
+function cloudSyncFavorite(fav) {
+  if (!currentUserId) return;
+  sb.from('favorites').upsert({
+    id: fav.id, user_id: currentUserId,
+    name: fav.name, calories: fav.calories, protein: fav.protein,
+    carbs: fav.carbs, fat: fav.fat,
+    pinned: fav.pinned, pinned_type: fav.pinnedType || null,
+  }).then(({error}) => { if (error) showCloudError(); });
+}
+function cloudDeleteFavorite(id) {
+  if (!currentUserId) return;
+  sb.from('favorites').delete().eq('id', id).then(({error}) => { if (error) showCloudError(); });
+}
+function cloudSyncFood(food) {
+  if (!currentUserId) return;
+  sb.from('foods').upsert({
+    id: food.id, user_id: currentUserId,
+    name: food.name, serving_size: food.servingSize, serving_unit: food.servingUnit,
+    calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat,
+  }).then(({error}) => { if (error) showCloudError(); });
+}
+function cloudDeleteFood(id) {
+  if (!currentUserId) return;
+  sb.from('foods').delete().eq('id', id).then(({error}) => { if (error) showCloudError(); });
+}
+function cloudSyncGoals() {
+  if (!currentUserId) return;
+  sb.from('user_goals').upsert({
+    user_id: currentUserId,
+    calories: state.goals.calories, protein: state.goals.protein,
+    carbs: state.goals.carbs, fat: state.goals.fat,
+  }).then(({error}) => { if (error) showCloudError(); });
+}
+
+// ---- First-login migration from localStorage → cloud ----
+async function migrateToCloud(userId, localState) {
+  try {
+    await sb.from('user_goals').upsert({
+      user_id: userId,
+      calories: localState.goals.calories, protein: localState.goals.protein,
+      carbs: localState.goals.carbs, fat: localState.goals.fat,
+    });
+    const mealRows = [];
+    for (const [date, meals] of Object.entries(localState.days || {}))
+      for (const m of meals)
+        mealRows.push({ id: m.id, user_id: userId, date,
+          name: m.name, type: m.type,
+          calories: m.calories, protein: m.protein, carbs: m.carbs, fat: m.fat,
+          food_items: m.foodItems || null, fav_id: m.favId || null });
+    if (mealRows.length) await sb.from('meals').upsert(mealRows);
+    const favRows = (localState.favorites || []).map(f => ({
+      id: f.id, user_id: userId,
+      name: f.name, calories: f.calories, protein: f.protein,
+      carbs: f.carbs, fat: f.fat,
+      pinned: f.pinned, pinned_type: f.pinnedType || null,
+    }));
+    if (favRows.length) await sb.from('favorites').upsert(favRows);
+    const foodRows = (localState.foods || []).map(f => ({
+      id: f.id, user_id: userId,
+      name: f.name, serving_size: f.servingSize, serving_unit: f.servingUnit,
+      calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+    }));
+    if (foodRows.length) await sb.from('foods').upsert(foodRows);
+    showToast('Data synced to cloud ✓');
+  } catch(e) { showCloudError(); }
+}
+
+// ============================================================
 //  CONSTANTS
 // ============================================================
 const MEAL_TYPES = [
@@ -601,7 +818,7 @@ function defaultState() {
   };
 }
 
-function loadState() {
+function loadStateLocal() {
   try {
     const s = localStorage.getItem('mt2');
     if (s) return Object.assign(defaultState(), JSON.parse(s));
@@ -1038,10 +1255,13 @@ function submitMeal() {
   }
 
   if (stf && !state.favorites.find(f => f.name.toLowerCase() === name.toLowerCase())) {
-    state.favorites.push({id: uid(), name, calories: cal, protein: pro, carbs: car, fat, pinned: false, pinnedType: null});
+    const newFav = {id: uid(), name, calories: cal, protein: pro, carbs: car, fat, pinned: false, pinnedType: null};
+    state.favorites.push(newFav);
+    cloudSyncFavorite(newFav);
   }
 
   save();
+  cloudSyncMeal(entry, currentDate);
   closeOverlay('ov-meal');
   renderDay();
   showToast(eid ? 'Meal updated' : 'Meal added ✓');
@@ -1051,15 +1271,16 @@ function deleteMeal(id) {
   if (!state.days[currentDate]) return;
   state.days[currentDate] = state.days[currentDate].filter(m => m.id !== id);
   if (!state.days[currentDate].length) delete state.days[currentDate];
-  save(); renderDay(); showToast('Meal removed');
+  save(); cloudDeleteMeal(id); renderDay(); showToast('Meal removed');
 }
 
 function saveMealToFav(mealId) {
   const meal = (state.days[currentDate] || []).find(m => m.id === mealId);
   if (!meal) return;
   if (state.favorites.find(f => f.name.toLowerCase() === meal.name.toLowerCase())) { showToast('Already in Favorites'); return; }
-  state.favorites.push({id: uid(), name: meal.name, calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, pinned: false, pinnedType: null});
-  save(); showToast('Saved to Favorites ⭐');
+  const newFav = {id: uid(), name: meal.name, calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, pinned: false, pinnedType: null};
+  state.favorites.push(newFav);
+  save(); cloudSyncFavorite(newFav); showToast('Saved to Favorites ⭐');
 }
 
 // ============================================================
@@ -1088,16 +1309,18 @@ function addFavToDay(favId) {
   const fav = state.favorites.find(f => f.id === favId);
   if (!fav) return;
   if (!state.days[currentDate]) state.days[currentDate] = [];
-  state.days[currentDate].push({id: uid(), name: fav.name, type: pendingMealType, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat, favId: fav.id});
-  save(); closeOverlay('ov-from-fav'); renderDay(); showToast('Added ' + fav.name + ' ✓');
+  const entry = {id: uid(), name: fav.name, type: pendingMealType, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat, favId: fav.id};
+  state.days[currentDate].push(entry);
+  save(); cloudSyncMeal(entry, currentDate); closeOverlay('ov-from-fav'); renderDay(); showToast('Added ' + fav.name + ' ✓');
 }
 
 function quickAddFav(favId, type) {
   const fav = state.favorites.find(f => f.id === favId);
   if (!fav) return;
   if (!state.days[currentDate]) state.days[currentDate] = [];
-  state.days[currentDate].push({id: uid(), name: fav.name, type, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat, favId: fav.id});
-  save(); renderDay(); showToast('Added ' + fav.name + ' ✓');
+  const entry = {id: uid(), name: fav.name, type, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat, favId: fav.id};
+  state.days[currentDate].push(entry);
+  save(); cloudSyncMeal(entry, currentDate); renderDay(); showToast('Added ' + fav.name + ' ✓');
 }
 
 // ============================================================
@@ -1199,9 +1422,10 @@ function submitFood() {
 
   if (eid) {
     const f = state.foods.find(f => f.id === eid);
-    if (f) Object.assign(f, {name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat});
+    if (f) { Object.assign(f, {name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat}); cloudSyncFood(f); }
   } else {
-    state.foods.push({id: uid(), name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat});
+    const food = {id: uid(), name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat};
+    state.foods.push(food); cloudSyncFood(food);
   }
   save();
   closeOverlay('ov-food-edit');
@@ -1211,14 +1435,14 @@ function submitFood() {
 
 function deleteFood(id) {
   state.foods = state.foods.filter(f => f.id !== id);
-  save(); renderFoods(); showToast('Food deleted');
+  save(); cloudDeleteFood(id); renderFoods(); showToast('Food deleted');
 }
 
 function deleteFoodFromModal() {
   const id = document.getElementById('food-edit-id').value;
   if (!id) return;
   state.foods = state.foods.filter(f => f.id !== id);
-  save(); closeOverlay('ov-food-edit'); if (currentView === 'foods') renderFoods(); showToast('Food deleted');
+  save(); cloudDeleteFood(id); closeOverlay('ov-food-edit'); if (currentView === 'foods') renderFoods(); showToast('Food deleted');
 }
 
 // ============================================================
@@ -1334,11 +1558,12 @@ function addFavToCurrentDay(favId) {
   if (!fav) return;
   const t = fav.pinnedType || 'snack';
   if (!state.days[currentDate]) state.days[currentDate] = [];
-  state.days[currentDate].push({id: uid(), name: fav.name, type: t, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat, favId: fav.id});
-  save(); showToast('Added to ' + fmtDate(currentDate));
+  const entry = {id: uid(), name: fav.name, type: t, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat, favId: fav.id};
+  state.days[currentDate].push(entry);
+  save(); cloudSyncMeal(entry, currentDate); showToast('Added to ' + fmtDate(currentDate));
 }
 
-function deleteFav(id) { state.favorites = state.favorites.filter(f => f.id !== id); save(); renderFavorites(); showToast('Removed from favorites'); }
+function deleteFav(id) { state.favorites = state.favorites.filter(f => f.id !== id); save(); cloudDeleteFavorite(id); renderFavorites(); showToast('Removed from favorites'); }
 
 // ============================================================
 //  FAVORITE DETAIL MODAL
@@ -1386,24 +1611,25 @@ function addFavFromDetail() {
   const ap = document.querySelector('#fav-det-body .type-pills .tpill.on');
   const type = ap ? MEAL_TYPES.find(t => ap.textContent.includes(t.label))?.id || 'snack' : 'snack';
   if (!state.days[currentDate]) state.days[currentDate] = [];
-  state.days[currentDate].push({id: uid(), name: fav.name, type, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat, favId: fav.id});
-  save(); closeOverlay('ov-fav-det'); showToast('Added to ' + fmtDate(currentDate) + ' ✓');
+  const entry = {id: uid(), name: fav.name, type, calories: fav.calories, protein: fav.protein, carbs: fav.carbs, fat: fav.fat, favId: fav.id};
+  state.days[currentDate].push(entry);
+  save(); cloudSyncMeal(entry, currentDate); closeOverlay('ov-fav-det'); showToast('Added to ' + fmtDate(currentDate) + ' ✓');
 }
 
 function pinFav() {
   if (!selectedPinType) { showToast('Select a meal type to pin'); return; }
   const fav = state.favorites.find(f => f.id === activeFavId); if (!fav) return;
   fav.pinned = true; fav.pinnedType = selectedPinType;
-  save(); closeOverlay('ov-fav-det'); renderFavorites(); showToast('📌 Pinned as daily ' + MEAL_TYPES.find(t=>t.id===selectedPinType)?.label);
+  save(); cloudSyncFavorite(fav); closeOverlay('ov-fav-det'); renderFavorites(); showToast('📌 Pinned as daily ' + MEAL_TYPES.find(t=>t.id===selectedPinType)?.label);
 }
 
 function unpinFav() {
   const fav = state.favorites.find(f => f.id === activeFavId); if (!fav) return;
   fav.pinned = false; fav.pinnedType = null;
-  save(); closeOverlay('ov-fav-det'); renderFavorites(); showToast('Unpinned');
+  save(); cloudSyncFavorite(fav); closeOverlay('ov-fav-det'); renderFavorites(); showToast('Unpinned');
 }
 
-function deleteFavFromDetail(id) { state.favorites = state.favorites.filter(f => f.id !== id); save(); closeOverlay('ov-fav-det'); renderFavorites(); showToast('Removed from favorites'); }
+function deleteFavFromDetail(id) { state.favorites = state.favorites.filter(f => f.id !== id); save(); cloudDeleteFavorite(id); closeOverlay('ov-fav-det'); renderFavorites(); showToast('Removed from favorites'); }
 
 // ============================================================
 //  FAVORITE EDIT MODAL
@@ -1434,8 +1660,13 @@ function submitFavEdit() {
   const car = parseNum(document.getElementById('fe-car').value);
   const fat = parseNum(document.getElementById('fe-fat').value);
   const eid = document.getElementById('fav-edit-id').value;
-  if (eid) { const fav = state.favorites.find(f => f.id === eid); if (fav) Object.assign(fav, {name, calories:cal, protein:pro, carbs:car, fat}); }
-  else state.favorites.push({id: uid(), name, calories: cal, protein: pro, carbs: car, fat, pinned: false, pinnedType: null});
+  if (eid) {
+    const fav = state.favorites.find(f => f.id === eid);
+    if (fav) { Object.assign(fav, {name, calories:cal, protein:pro, carbs:car, fat}); cloudSyncFavorite(fav); }
+  } else {
+    const fav = {id: uid(), name, calories: cal, protein: pro, carbs: car, fat, pinned: false, pinnedType: null};
+    state.favorites.push(fav); cloudSyncFavorite(fav);
+  }
   save(); closeOverlay('ov-fav-edit'); renderFavorites(); showToast(eid ? 'Favorite updated' : 'Favorite saved ⭐');
 }
 
@@ -1454,7 +1685,7 @@ function saveGoals() {
   state.goals.protein  = parseNum(document.getElementById('g-pro').value) || 150;
   state.goals.carbs    = parseNum(document.getElementById('g-car').value) || 250;
   state.goals.fat      = parseNum(document.getElementById('g-fat').value) || 65;
-  save(); showToast('Goals saved ✓');
+  save(); cloudSyncGoals(); showToast('Goals saved ✓');
 }
 
 // ============================================================
@@ -1467,13 +1698,49 @@ function overlayClick(e, id) { if (e.target === document.getElementById(id)) clo
 // ============================================================
 //  INIT
 // ============================================================
-function init() {
-  state = loadState();
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { showAuthUI(); return; }
+  currentUserId = session.user.id;
+
+  // Show the app shell immediately and start loading
+  hideAuthUI();
+  showLoadingScreen();
+
+  try {
+    const cloudState = await loadStateCloud(currentUserId);
+    const cloudEmpty = !Object.keys(cloudState.days).length
+      && !cloudState.favorites.length && !cloudState.foods.length
+      && cloudState.goals.calories === defaultState().goals.calories;
+    if (cloudEmpty) {
+      // First login — migrate existing localStorage data if present
+      const local = loadStateLocal();
+      const hasLocal = Object.keys(local.days).length || local.favorites.length || local.foods.length;
+      state = local;
+      if (hasLocal) migrateToCloud(currentUserId, local);
+    } else {
+      state = cloudState;
+    }
+  } catch(e) {
+    console.error('Cloud load error:', e);
+    state = loadStateLocal();
+    showToast('⚠️ Running offline — data saved locally');
+  }
+
   if (!state.foods) state.foods = [];
   const n = new Date(); calYear = n.getFullYear(); calMonth = n.getMonth();
+  hideLoadingScreen();
   renderDay();
 }
+
+// Handle magic link and OAuth redirects
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN') init();
+  if (event === 'SIGNED_OUT') showAuthUI();
+});
+
 init();
 </script>
+</div><!-- #app -->
 </body>
 </html>

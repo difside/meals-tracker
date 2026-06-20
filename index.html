@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Meal Tracker</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--card:#fff;--primary:#4361ee;--primary-light:#eef0fd;
+  --protein:#0ea5e9;--carbs:#f59e0b;--fat:#f97316;
+  --success:#22c55e;--danger:#ef4444;
+  --text:#1e1e2e;--muted:#6b7280;--border:#e5e7eb;
+  --radius:16px;--shadow:0 1px 8px rgba(0,0,0,.08);
+}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);max-width:480px;margin:0 auto;min-height:100vh}
+/* Header */
+.hdr{background:var(--card);padding:13px 16px;position:sticky;top:0;z-index:50;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.hdr-title{flex:1;font-size:18px;font-weight:800;letter-spacing:-.3px}
+/* Main */
+.main{padding:14px 14px 88px}
+/* Bottom nav */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--border);display:flex;z-index:50}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 12px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:10px;font-weight:600;transition:color .15s}
+.bnav-btn.active{color:var(--primary)}
+.bnav-btn svg{width:22px;height:22px;stroke-width:2;fill:none;stroke:currentColor}
+/* Views */
+.view{display:none}.view.active{display:block}
+/* Cards */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px}
+/* Date nav */
+.date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.date-arrow{width:36px;height:36px;border:none;background:var(--card);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);color:var(--text);flex-shrink:0}
+.date-arrow svg{width:18px;height:18px;stroke-width:2.5;fill:none;stroke:currentColor}
+.date-center{text-align:center}
+.date-text{font-size:15px;font-weight:700;cursor:pointer;text-decoration:underline dotted}
+.date-badge{font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:999px;display:inline-block;margin-top:3px}
+/* Calorie ring */
+.cal-card{padding:18px;display:flex;align-items:center;gap:18px}
+.ring-wrap{position:relative;width:128px;height:128px;flex-shrink:0}
+.ring-wrap svg{width:128px;height:128px}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-num{font-size:26px;font-weight:900;line-height:1;letter-spacing:-1px}
+.ring-lbl{font-size:10px;font-weight:600;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.cal-stats{flex:1;display:flex;flex-direction:column;gap:9px}
+.cal-stat{display:flex;justify-content:space-between;align-items:center}
+.cal-stat-lbl{font-size:12px;color:var(--muted);font-weight:500}
+.cal-stat-val{font-size:14px;font-weight:800}
+/* Macros */
+.macro-card{padding:14px 18px}
+.macro-card-ttl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px}
+.macro-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.macro-row:last-child{margin-bottom:0}
+.macro-nm{font-size:12px;font-weight:700;width:52px;flex-shrink:0}
+.macro-bar{flex:1;height:6px;background:var(--bg);border-radius:999px;overflow:hidden}
+.macro-fill{height:100%;border-radius:999px;transition:width .5s ease}
+.macro-vals{font-size:11px;color:var(--muted);width:72px;text-align:right;flex-shrink:0}
+/* Meal sections */
+.ms{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
+.ms-head{display:flex;align-items:center;padding:12px 14px;cursor:pointer;user-select:none;gap:10px}
+.ms-icon{font-size:18px;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ms-name{flex:1;font-size:14px;font-weight:700}
+.ms-cals{font-size:13px;font-weight:600;color:var(--muted)}
+.ms-chev{color:var(--muted);transition:transform .2s;flex-shrink:0}
+.ms-chev svg{width:16px;height:16px;stroke-width:2.5;fill:none;stroke:currentColor}
+.ms-chev.open{transform:rotate(180deg)}
+.ms-body{border-top:1px solid var(--border)}
+/* Pinned suggestion */
+.pin-row{display:flex;align-items:center;padding:8px 14px;background:#fffbeb;border-bottom:1px solid #fef3c7;gap:10px}
+.pin-info{flex:1;min-width:0}
+.pin-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pin-cal{font-size:11px;color:var(--muted)}
+.btn-qadd{padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;transition:opacity .15s;font-family:inherit}
+.btn-qadd:hover{opacity:.85}
+/* Meal item */
+.mi{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px}
+.mi:last-child{border-bottom:none}
+.mi-left{flex:1;min-width:0}
+.mi-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-macros{font-size:11px;color:var(--muted);margin-top:1px}
+.mi-right{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.mi-cals{font-size:15px;font-weight:800;color:var(--primary)}
+.ibtn{width:28px;height:28px;border:none;border-radius:8px;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s;flex-shrink:0}
+.ibtn:hover{background:var(--primary-light);color:var(--primary)}
+.ibtn.del:hover{background:#fff0f0;color:var(--danger)}
+.ibtn svg{width:13px;height:13px;stroke-width:2.5;fill:none;stroke:currentColor}
+/* Add row */
+.add-row{display:flex;padding:10px 14px;gap:8px}
+.btn-add-meal{flex:1;padding:9px;border:1.5px dashed var(--border);background:none;border-radius:10px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:5px;transition:all .15s;font-family:inherit}
+.btn-add-meal:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+.btn-from-fav{padding:9px 12px;border:1.5px solid var(--border);background:none;border-radius:10px;cursor:pointer;color:var(--muted);font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;transition:all .15s;font-family:inherit;white-space:nowrap}
+.btn-from-fav:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light)}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.overlay.open{opacity:1;pointer-events:all}
+.sheet{background:var(--card);border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;padding:0 20px 40px;transform:translateY(100%);transition:transform .3s cubic-bezier(.34,1.1,.64,1)}
+.overlay.open .sheet{transform:translateY(0)}
+.sheet-handle{position:sticky;top:0;background:var(--card);padding:14px 0 6px;z-index:1;margin:0 -20px;padding-left:20px;padding-right:20px}
+.handle-bar{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto}
+.sheet-title{font-size:17px;font-weight:800;margin-bottom:18px;margin-top:10px}
+/* Form */
+.fg{margin-bottom:13px}
+.fl{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+.fi,.fsel{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;font-size:15px;color:var(--text);background:var(--bg);outline:none;font-family:inherit;transition:border-color .15s,background .15s}
+.fi:focus,.fsel:focus{border-color:var(--primary);background:#fff}
+.fsel{appearance:none;cursor:pointer}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.fchk{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;cursor:pointer;background:var(--bg);transition:all .15s}
+.fchk.on{border-color:var(--primary);background:var(--primary-light)}
+.fchk input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;flex-shrink:0}
+.fchk label{font-size:13px;font-weight:500;cursor:pointer;flex:1}
+.type-pills{display:flex;gap:7px;flex-wrap:wrap}
+.tpill{padding:7px 13px;border:1.5px solid var(--border);border-radius:999px;background:var(--bg);font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .15s;font-family:inherit}
+.tpill.on{border-color:var(--primary);background:var(--primary-light);color:var(--primary)}
+.btn-p{width:100%;padding:13px;background:var(--primary);color:#fff;border:none;border-radius:13px;font-size:15px;font-weight:700;cursor:pointer;margin-top:5px;transition:opacity .15s;font-family:inherit}
+.btn-p:hover{opacity:.9}
+.btn-s{width:100%;padding:12px;background:var(--bg);color:var(--text);border:none;border-radius:13px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
+.btn-d{width:100%;padding:12px;background:#fff0f0;color:var(--danger);border:none;border-radius:13px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit}
+.sep{height:1px;background:var(--border);margin:14px 0}
+/* Calendar */
+.cal-wrap{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px;margin-bottom:12px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.cal-month{font-size:15px;font-weight:700}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-wd{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0 8px;text-transform:uppercase}
+.cal-d{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;gap:1px;transition:background .15s}
+.cal-d:not(.empty):hover{background:var(--primary-light)}
+.cal-d.empty{cursor:default}
+.cal-d.today{background:var(--primary);color:#fff;font-weight:700}
+.cal-d.today:hover{background:var(--primary)}
+.cal-d.sel{outline:2px solid var(--primary);outline-offset:1px}
+.cal-d.future{color:var(--muted)}
+.cal-dot{width:4px;height:4px;border-radius:50%}
+/* History detail */
+.hist-detail{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px;margin-bottom:12px}
+.hist-ttl{font-size:14px;font-weight:700;margin-bottom:12px}
+.hist-row{display:flex;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.hist-row:last-child{border-bottom:none}
+.hist-lbl{color:var(--muted);font-weight:500}
+.hist-val{font-weight:700}
+.hist-mi{display:flex;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);gap:8px;font-size:13px}
+.hist-mi:last-child{border-bottom:none}
+.hist-mi-name{flex:1;font-weight:500}
+.hist-mi-cals{font-weight:700;color:var(--primary)}
+/* Favorites */
+.pg-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.pg-ttl{font-size:17px;font-weight:800}
+.btn-add{padding:7px 14px;background:var(--primary);color:#fff;border:none;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:4px}
+.fav-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:13px;display:flex;align-items:center;gap:11px;margin-bottom:8px}
+.fav-em{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.fav-info{flex:1;min-width:0}
+.fav-name{font-size:14px;font-weight:700}
+.fav-mac{font-size:12px;color:var(--muted);margin-top:1px}
+.fav-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--primary);background:var(--primary-light);padding:2px 7px;border-radius:999px;margin-top:4px}
+.fav-acts{display:flex;gap:5px;align-items:center}
+.btn-qadd2{padding:7px 13px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.btn-qadd2:hover{opacity:.85}
+/* Fav select modal list */
+.fsel-item{display:flex;align-items:center;padding:11px 13px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;gap:10px;transition:all .15s}
+.fsel-item:hover{border-color:var(--primary);background:var(--primary-light)}
+.fsel-nm{flex:1;font-size:14px;font-weight:600}
+.fsel-cal{font-size:13px;font-weight:700;color:var(--primary)}
+/* Pin type grid */
+.pin-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+.pin-btn{padding:14px 10px;border:2px solid var(--border);border-radius:13px;background:var(--bg);cursor:pointer;text-align:center;font-family:inherit;transition:all .15s}
+.pin-btn.on{border-color:var(--primary);background:var(--primary-light)}
+.pin-em{font-size:22px;display:block;margin-bottom:5px}
+.pin-lbl{font-size:13px;font-weight:600;color:var(--text)}
+/* Settings */
+.set-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:17px;margin-bottom:12px}
+.set-ttl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:13px}
+.goal-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);gap:12px}
+.goal-row:last-child{border-bottom:none}
+.goal-lbl{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.goal-unit{font-size:12px;color:var(--muted);font-weight:400}
+.goal-inp{width:88px;padding:8px 10px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-weight:700;text-align:center;color:var(--text);background:var(--bg);outline:none;font-family:inherit}
+.goal-inp:focus{border-color:var(--primary);background:#fff}
+/* Toast */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:9px 20px;border-radius:999px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all .25s ease;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* Empty state */
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty-ic{font-size:36px;margin-bottom:10px}
+.empty-tx{font-size:14px;font-weight:500}
+.empty-sub{font-size:12px;margin-top:4px;opacity:.7}
+/* Fav detail header */
+.fav-det-hdr{display:flex;align-items:center;gap:13px;padding:13px;background:var(--bg);border-radius:13px;margin-bottom:16px}
+.fav-det-em{font-size:26px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;background:var(--card);border-radius:13px}
+.fav-det-name{font-size:16px;font-weight:800}
+.fav-det-mac{font-size:13px;color:var(--muted);margin-top:3px}
+/* Macro chips */
+.mchips{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
+.mchip{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px}
+.mchip.p{background:#e0f5fe;color:#0284c7}
+.mchip.c{background:#fef9c3;color:#d97706}
+.mchip.f{background:#fff7ed;color:#ea580c}
+/* Utility */
+.over{color:var(--danger)!important}
+.trunc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div id="app">
+<!-- HEADER -->
+<header class="hdr">
+  <span style="font-size:22px">🥗</span>
+  <div class="hdr-title">Meal Tracker</div>
+</header>
+
+<!-- MAIN -->
+<main class="main" id="main">
+
+<!-- DAY VIEW -->
+<div id="view-day" class="view active">
+  <div class="date-nav">
+    <button class="date-arrow" onclick="shiftDate(-1)">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <div class="date-center">
+      <div class="date-text" onclick="openDatePicker()" id="date-text">—</div>
+      <div id="date-badge"></div>
+    </div>
+    <button class="date-arrow" onclick="shiftDate(1)">
+      <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+
+  <div class="card cal-card">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 128 128">
+        <circle cx="64" cy="64" r="54" fill="none" stroke="#f0f0f0" stroke-width="11"/>
+        <circle id="ring-track" cx="64" cy="64" r="54" fill="none" stroke="var(--primary)" stroke-width="11"
+          stroke-linecap="round" stroke-dasharray="339.29 339.29" transform="rotate(-90 64 64)"
+          style="transition:stroke-dasharray .5s ease,stroke .3s"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-num" id="ring-num">—</div>
+        <div class="ring-lbl" id="ring-lbl">remaining</div>
+      </div>
+    </div>
+    <div class="cal-stats">
+      <div class="cal-stat">
+        <span class="cal-stat-lbl">Goal</span>
+        <span class="cal-stat-val" id="cstat-goal">—</span>
+      </div>
+      <div style="height:1px;background:var(--border)"></div>
+      <div class="cal-stat">
+        <span class="cal-stat-lbl">Consumed</span>
+        <span class="cal-stat-val" id="cstat-consumed">—</span>
+      </div>
+      <div style="height:1px;background:var(--border)"></div>
+      <div class="cal-stat">
+        <span class="cal-stat-lbl">Remaining</span>
+        <span class="cal-stat-val" id="cstat-remaining">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card macro-card">
+    <div class="macro-card-ttl">Macros</div>
+    <div class="macro-row">
+      <span class="macro-nm" style="color:var(--protein)">Protein</span>
+      <div class="macro-bar"><div class="macro-fill" id="bar-p" style="background:var(--protein)"></div></div>
+      <div class="macro-vals" id="val-p">—</div>
+    </div>
+    <div class="macro-row">
+      <span class="macro-nm" style="color:var(--carbs)">Carbs</span>
+      <div class="macro-bar"><div class="macro-fill" id="bar-c" style="background:var(--carbs)"></div></div>
+      <div class="macro-vals" id="val-c">—</div>
+    </div>
+    <div class="macro-row">
+      <span class="macro-nm" style="color:var(--fat)">Fat</span>
+      <div class="macro-bar"><div class="macro-fill" id="bar-f" style="background:var(--fat)"></div></div>
+      <div class="macro-vals" id="val-f">—</div>
+    </div>
+  </div>
+
+  <div id="meal-sections"></div>
+</div>
+
+<!-- HISTORY VIEW -->
+<div id="view-history" class="view">
+  <div class="pg-hdr">
+    <div class="pg-ttl">History</div>
+  </div>
+  <div class="cal-wrap">
+    <div class="cal-nav">
+      <button class="date-arrow" onclick="shiftCal(-1)">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke-width:2.5;fill:none;stroke:currentColor"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="cal-month" id="cal-month">—</div>
+      <button class="date-arrow" onclick="shiftCal(1)">
+        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke-width:2.5;fill:none;stroke:currentColor"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <div id="hist-detail"></div>
+</div>
+
+<!-- FAVORITES VIEW -->
+<div id="view-favorites" class="view">
+  <div class="pg-hdr">
+    <div class="pg-ttl">Favorites</div>
+    <button class="btn-add" onclick="openFavEdit(null)">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:3;fill:none;stroke:currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New
+    </button>
+  </div>
+  <div id="fav-list"></div>
+</div>
+
+<!-- SETTINGS VIEW -->
+<div id="view-settings" class="view">
+  <div class="pg-hdr"><div class="pg-ttl">Settings</div></div>
+  <div class="set-card">
+    <div class="set-ttl">Daily Goals</div>
+    <div class="goal-row">
+      <div class="goal-lbl">🔥 Calories <span class="goal-unit">kcal</span></div>
+      <input class="goal-inp" type="number" id="g-cal" min="0" onchange="saveGoals()">
+    </div>
+    <div class="goal-row">
+      <div class="goal-lbl" style="color:var(--protein)">Protein <span class="goal-unit">g</span></div>
+      <input class="goal-inp" type="number" id="g-pro" min="0" onchange="saveGoals()">
+    </div>
+    <div class="goal-row">
+      <div class="goal-lbl" style="color:var(--carbs)">Carbs <span class="goal-unit">g</span></div>
+      <input class="goal-inp" type="number" id="g-car" min="0" onchange="saveGoals()">
+    </div>
+    <div class="goal-row">
+      <div class="goal-lbl" style="color:var(--fat)">Fat <span class="goal-unit">g</span></div>
+      <input class="goal-inp" type="number" id="g-fat" min="0" onchange="saveGoals()">
+    </div>
+  </div>
+  <div class="set-card">
+    <div class="set-ttl">About</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6">
+      All data is stored locally on your device.<br>
+      Navigate dates to log past or future meals.
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button class="bnav-btn active" id="nb-day" onclick="switchView('day')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+    Today
+  </button>
+  <button class="bnav-btn" id="nb-history" onclick="switchView('history')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+    History
+  </button>
+  <button class="bnav-btn" id="nb-favorites" onclick="switchView('favorites')">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    Favorites
+  </button>
+  <button class="bnav-btn" id="nb-settings" onclick="switchView('settings')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL: Add/Edit Meal -->
+<div class="overlay" id="ov-meal" onclick="overlayClick(event,'ov-meal')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title" id="meal-modal-title">Add Meal</div>
+    <input type="hidden" id="meal-edit-id">
+    <div class="fg">
+      <label class="fl">Meal Name</label>
+      <input class="fi" id="meal-name" type="text" placeholder="e.g. Grilled Chicken" autocomplete="off">
+    </div>
+    <div class="fg">
+      <label class="fl">Calories (kcal)</label>
+      <input class="fi" id="meal-cal" type="number" min="0" placeholder="0">
+    </div>
+    <div class="fg">
+      <label class="fl">Macros (g)</label>
+      <div class="fg3">
+        <div>
+          <label class="fl" style="color:var(--protein)">Protein</label>
+          <input class="fi" id="meal-pro" type="number" min="0" placeholder="0">
+        </div>
+        <div>
+          <label class="fl" style="color:var(--carbs)">Carbs</label>
+          <input class="fi" id="meal-car" type="number" min="0" placeholder="0">
+        </div>
+        <div>
+          <label class="fl" style="color:var(--fat)">Fat</label>
+          <input class="fi" id="meal-fat" type="number" min="0" placeholder="0">
+        </div>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Meal Type</label>
+      <div class="type-pills" id="meal-type-pills"></div>
+    </div>
+    <div class="fg">
+      <label class="fchk" id="fchk-save" onclick="toggleCheck('fchk-save','meal-save-fav')">
+        <input type="checkbox" id="meal-save-fav">
+        <label for="meal-save-fav">⭐ Save to Favorites</label>
+      </label>
+    </div>
+    <button class="btn-p" onclick="submitMeal()">Save Meal</button>
+    <button class="btn-s" onclick="closeOverlay('ov-meal')">Cancel</button>
+  </div>
+</div>
+
+<!-- MODAL: Select from Favorites -->
+<div class="overlay" id="ov-from-fav" onclick="overlayClick(event,'ov-from-fav')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title">Add from Favorites</div>
+    <div id="fav-select-list"></div>
+  </div>
+</div>
+
+<!-- MODAL: Favorite Edit -->
+<div class="overlay" id="ov-fav-edit" onclick="overlayClick(event,'ov-fav-edit')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title" id="fav-edit-title">New Favorite</div>
+    <input type="hidden" id="fav-edit-id">
+    <div class="fg">
+      <label class="fl">Name</label>
+      <input class="fi" id="fe-name" type="text" placeholder="e.g. Oatmeal Bowl" autocomplete="off">
+    </div>
+    <div class="fg">
+      <label class="fl">Calories (kcal)</label>
+      <input class="fi" id="fe-cal" type="number" min="0" placeholder="0">
+    </div>
+    <div class="fg">
+      <label class="fl">Macros (g)</label>
+      <div class="fg3">
+        <div>
+          <label class="fl" style="color:var(--protein)">Protein</label>
+          <input class="fi" id="fe-pro" type="number" min="0" placeholder="0">
+        </div>
+        <div>
+          <label class="fl" style="color:var(--carbs)">Carbs</label>
+          <input class="fi" id="fe-car" type="number" min="0" placeholder="0">
+        </div>
+        <div>
+          <label class="fl" style="color:var(--fat)">Fat</label>
+          <input class="fi" id="fe-fat" type="number" min="0" placeholder="0">
+        </div>
+      </div>
+    </div>
+    <button class="btn-p" onclick="submitFavEdit()">Save</button>
+    <button class="btn-s" onclick="closeOverlay('ov-fav-edit')">Cancel</button>
+  </div>
+</div>
+
+<!-- MODAL: Favorite Detail -->
+<div class="overlay" id="ov-fav-det" onclick="overlayClick(event,'ov-fav-det')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="fav-det-hdr" id="fav-det-hdr"></div>
+    <div id="fav-det-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: Date Picker -->
+<div class="overlay" id="ov-date" onclick="overlayClick(event,'ov-date')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title">Jump to Date</div>
+    <div class="fg">
+      <label class="fl">Select Date</label>
+      <input class="fi" id="date-picker-input" type="date">
+    </div>
+    <button class="btn-p" onclick="jumpToDate()">Go to Date</button>
+    <button class="btn-s" onclick="closeOverlay('ov-date')">Cancel</button>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ============================================================
+//  CONSTANTS
+// ============================================================
+const MEAL_TYPES = [
+  {id:'breakfast', label:'Breakfast', emoji:'☀️', bg:'#fff9c4'},
+  {id:'lunch',     label:'Lunch',     emoji:'🌤️', bg:'#e3f2fd'},
+  {id:'dinner',    label:'Dinner',    emoji:'🌙', bg:'#f3e5f5'},
+  {id:'snack',     label:'Snacks',    emoji:'🍎', bg:'#e8f5e9'},
+];
+
+const CIRC = 2 * Math.PI * 54; // 339.29
+
+// ============================================================
+//  STATE
+// ============================================================
+let state;
+let currentDate = todayStr();
+let currentView = 'day';
+let calYear, calMonth;
+let histSelDate = null;
+let pendingMealType = 'breakfast'; // for add-meal modal
+
+function defaultState() {
+  return {
+    goals: {calories:2000, protein:150, carbs:250, fat:65},
+    days: {},
+    favorites: [],
+  };
+}
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('mt2');
+    if (s) {
+      const parsed = JSON.parse(s);
+      return Object.assign(defaultState(), parsed);
+    }
+  } catch(e){}
+  return defaultState();
+}
+
+function save() {
+  localStorage.setItem('mt2', JSON.stringify(state));
+}
+
+// ============================================================
+//  UTILITIES
+// ============================================================
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+
+function parseNum(v) {
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : Math.max(0, n);
+}
+
+function fmtDate(str) {
+  if (!str) return '';
+  const [y,m,d] = str.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  const today = new Date();
+  const todayStr2 = todayStr();
+  if (str === todayStr2) return 'Today';
+  const tmr = new Date(today); tmr.setDate(tmr.getDate()+1);
+  if (str === tmr.toISOString().split('T')[0]) return 'Tomorrow';
+  const yest = new Date(today); yest.setDate(yest.getDate()-1);
+  if (str === yest.toISOString().split('T')[0]) return 'Yesterday';
+  return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+
+function fmtFullDate(str) {
+  if (!str) return '';
+  const [y,m,d] = str.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  return dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+
+function getDayMeals(dateStr) {
+  return state.days[dateStr] || [];
+}
+
+function getDayTotals(dateStr) {
+  const meals = getDayMeals(dateStr);
+  return meals.reduce((acc, m) => ({
+    calories: acc.calories + m.calories,
+    protein:  acc.protein  + m.protein,
+    carbs:    acc.carbs    + m.carbs,
+    fat:      acc.fat      + m.fat,
+  }), {calories:0, protein:0, carbs:0, fat:0});
+}
+
+function clamp01(v) { return Math.min(1, Math.max(0, v)); }
+
+function pct(consumed, goal) {
+  if (!goal) return 0;
+  return clamp01(consumed / goal);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ============================================================
+//  VIEWS
+// ============================================================
+function switchView(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.bnav-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.getElementById('nb-' + v).classList.add('active');
+  if (v === 'day') renderDay();
+  if (v === 'history') renderHistory();
+  if (v === 'favorites') renderFavorites();
+  if (v === 'settings') renderSettings();
+}
+
+// ============================================================
+//  DAY VIEW
+// ============================================================
+function renderDay() {
+  // Date line
+  const dt = document.getElementById('date-text');
+  dt.textContent = fmtDate(currentDate);
+  const badge = document.getElementById('date-badge');
+  if (currentDate === todayStr()) {
+    badge.textContent = 'Today';
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  const totals = getDayTotals(currentDate);
+  const g = state.goals;
+
+  // Calorie ring
+  const remaining = g.calories - totals.calories;
+  const ratio = pct(totals.calories, g.calories);
+  const ringTrack = document.getElementById('ring-track');
+  ringTrack.setAttribute('stroke-dasharray', `${ratio * CIRC} ${CIRC - ratio * CIRC}`);
+  ringTrack.style.stroke = ratio >= 1 ? 'var(--danger)' : 'var(--primary)';
+
+  const ringNum = document.getElementById('ring-num');
+  const ringLbl = document.getElementById('ring-lbl');
+  if (remaining < 0) {
+    ringNum.textContent = Math.abs(Math.round(remaining));
+    ringNum.className = 'ring-num over';
+    ringLbl.textContent = 'over goal';
+  } else {
+    ringNum.textContent = Math.round(remaining);
+    ringNum.className = 'ring-num';
+    ringLbl.textContent = 'remaining';
+  }
+
+  document.getElementById('cstat-goal').textContent = g.calories + ' kcal';
+  document.getElementById('cstat-consumed').textContent = Math.round(totals.calories) + ' kcal';
+  const remEl = document.getElementById('cstat-remaining');
+  remEl.textContent = Math.round(remaining) + ' kcal';
+  remEl.className = 'cal-stat-val' + (remaining < 0 ? ' over' : '');
+
+  // Macros
+  function setMacro(barId, valId, consumed, goal, color) {
+    const ratio2 = pct(consumed, goal);
+    document.getElementById(barId).style.width = (ratio2 * 100) + '%';
+    const over2 = consumed > goal;
+    document.getElementById(barId).style.background = over2 ? 'var(--danger)' : color;
+    document.getElementById(valId).textContent = Math.round(consumed) + ' / ' + goal + 'g';
+    document.getElementById(valId).className = 'macro-vals' + (over2 ? ' over' : '');
+  }
+  setMacro('bar-p','val-p', totals.protein, g.protein,  'var(--protein)');
+  setMacro('bar-c','val-c', totals.carbs,   g.carbs,    'var(--carbs)');
+  setMacro('bar-f','val-f', totals.fat,     g.fat,      'var(--fat)');
+
+  // Meal sections
+  renderMealSections();
+}
+
+function renderMealSections() {
+  const meals = getDayMeals(currentDate);
+  const container = document.getElementById('meal-sections');
+  container.innerHTML = '';
+
+  MEAL_TYPES.forEach(type => {
+    const typeMeals = meals.filter(m => m.type === type.id);
+    const typeTotal = typeMeals.reduce((s, m) => s + m.calories, 0);
+    const pinnedFavs = state.favorites.filter(f => f.pinned && f.pinnedType === type.id);
+
+    const sec = document.createElement('div');
+    sec.className = 'ms';
+    sec.id = 'ms-' + type.id;
+
+    // Already-added pinned meal IDs for this day
+    const addedFavIds = new Set(meals.filter(m => m.favId).map(m => m.favId));
+
+    const pinnedHTML = pinnedFavs.map(f => {
+      const alreadyAdded = addedFavIds.has(f.id);
+      return `<div class="pin-row">
+        <span style="font-size:14px">📌</span>
+        <div class="pin-info">
+          <div class="pin-name">${esc(f.name)}</div>
+          <div class="pin-cal">${f.calories} kcal · P${f.protein}g C${f.carbs}g F${f.fat}g</div>
+        </div>
+        <button class="btn-qadd" onclick="quickAddFav('${f.id}','${type.id}')" ${alreadyAdded?'style="background:var(--success)"':''}>
+          ${alreadyAdded ? '✓ Added' : '+ Add'}
+        </button>
+      </div>`;
+    }).join('');
+
+    const mealsHTML = typeMeals.map(m => `
+      <div class="mi">
+        <div class="mi-left">
+          <div class="mi-name trunc">${esc(m.name)}</div>
+          <div class="mi-macros">P${m.protein}g · C${m.carbs}g · F${m.fat}g</div>
+        </div>
+        <div class="mi-right">
+          <span class="mi-cals">${m.calories}</span>
+          <button class="ibtn" title="Save to Favorites" onclick="saveMealToFav('${m.id}')">
+            <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </button>
+          <button class="ibtn del" title="Delete" onclick="deleteMeal('${m.id}')">
+            <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
+      </div>`).join('');
+
+    sec.innerHTML = `
+      <div class="ms-head" onclick="toggleSection('${type.id}')">
+        <div class="ms-icon" style="background:${type.bg}">${type.emoji}</div>
+        <div class="ms-name">${type.label}</div>
+        <div class="ms-cals">${typeTotal ? typeTotal + ' kcal' : ''}</div>
+        <div class="ms-chev open" id="chev-${type.id}">
+          <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+      </div>
+      <div class="ms-body" id="msb-${type.id}">
+        ${pinnedHTML}
+        ${mealsHTML}
+        <div class="add-row">
+          <button class="btn-add-meal" onclick="openAddMeal('${type.id}')">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:3;fill:none;stroke:currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Meal
+          </button>
+          <button class="btn-from-fav" onclick="openFromFav('${type.id}')">
+            ⭐ From Favorites
+          </button>
+        </div>
+      </div>`;
+
+    container.appendChild(sec);
+  });
+}
+
+function toggleSection(typeId) {
+  const body = document.getElementById('msb-' + typeId);
+  const chev = document.getElementById('chev-' + typeId);
+  if (body.style.display === 'none') {
+    body.style.display = '';
+    chev.classList.add('open');
+  } else {
+    body.style.display = 'none';
+    chev.classList.remove('open');
+  }
+}
+
+function shiftDate(delta) {
+  const [y,m,d] = currentDate.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  dt.setDate(dt.getDate() + delta);
+  currentDate = dt.toISOString().split('T')[0];
+  renderDay();
+}
+
+function openDatePicker() {
+  document.getElementById('date-picker-input').value = currentDate;
+  openOverlay('ov-date');
+}
+
+function jumpToDate() {
+  const v = document.getElementById('date-picker-input').value;
+  if (v) {
+    currentDate = v;
+    closeOverlay('ov-date');
+    if (currentView !== 'day') switchView('day');
+    else renderDay();
+  }
+}
+
+// ============================================================
+//  ADD MEAL MODAL
+// ============================================================
+function openAddMeal(type) {
+  pendingMealType = type;
+  document.getElementById('meal-modal-title').textContent = 'Add Meal';
+  document.getElementById('meal-edit-id').value = '';
+  document.getElementById('meal-name').value = '';
+  document.getElementById('meal-cal').value = '';
+  document.getElementById('meal-pro').value = '';
+  document.getElementById('meal-car').value = '';
+  document.getElementById('meal-fat').value = '';
+  const fchk = document.getElementById('fchk-save');
+  fchk.classList.remove('on');
+  document.getElementById('meal-save-fav').checked = false;
+  renderTypePills('meal-type-pills', pendingMealType, t => { pendingMealType = t; });
+  openOverlay('ov-meal');
+  setTimeout(() => document.getElementById('meal-name').focus(), 350);
+}
+
+function renderTypePills(containerId, selected, onChange) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = MEAL_TYPES.map(t => `
+    <button class="tpill ${t.id===selected?'on':''}" onclick="selectPill('${containerId}','${t.id}',this)">${t.emoji} ${t.label}</button>
+  `).join('');
+  c._onChange = onChange;
+}
+
+function selectPill(containerId, typeId, btn) {
+  pendingMealType = typeId;
+  document.querySelectorAll(`#${containerId} .tpill`).forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function toggleCheck(rowId, checkId) {
+  const row = document.getElementById(rowId);
+  const chk = document.getElementById(checkId);
+  chk.checked = !chk.checked;
+  row.classList.toggle('on', chk.checked);
+}
+
+function submitMeal() {
+  const name = document.getElementById('meal-name').value.trim();
+  if (!name) { showToast('Please enter a meal name'); return; }
+  const cal  = parseNum(document.getElementById('meal-cal').value);
+  const pro  = parseNum(document.getElementById('meal-pro').value);
+  const car  = parseNum(document.getElementById('meal-car').value);
+  const fat  = parseNum(document.getElementById('meal-fat').value);
+  const editId = document.getElementById('meal-edit-id').value;
+  const saveToFav = document.getElementById('meal-save-fav').checked;
+
+  if (!state.days[currentDate]) state.days[currentDate] = [];
+
+  if (editId) {
+    const idx = state.days[currentDate].findIndex(m => m.id === editId);
+    if (idx !== -1) {
+      state.days[currentDate][idx] = {...state.days[currentDate][idx], name, calories:cal, protein:pro, carbs:car, fat};
+    }
+  } else {
+    state.days[currentDate].push({id:uid(), name, type:pendingMealType, calories:cal, protein:pro, carbs:car, fat});
+  }
+
+  if (saveToFav) {
+    const existing = state.favorites.find(f => f.name.toLowerCase() === name.toLowerCase());
+    if (!existing) {
+      state.favorites.push({id:uid(), name, calories:cal, protein:pro, carbs:car, fat, pinned:false, pinnedType:null});
+    }
+  }
+
+  save();
+  closeOverlay('ov-meal');
+  renderDay();
+  showToast(editId ? 'Meal updated' : 'Meal added ✓');
+}
+
+function deleteMeal(id) {
+  if (!state.days[currentDate]) return;
+  state.days[currentDate] = state.days[currentDate].filter(m => m.id !== id);
+  if (!state.days[currentDate].length) delete state.days[currentDate];
+  save();
+  renderDay();
+  showToast('Meal removed');
+}
+
+function saveMealToFav(mealId) {
+  const meal = (state.days[currentDate] || []).find(m => m.id === mealId);
+  if (!meal) return;
+  const exists = state.favorites.find(f => f.name.toLowerCase() === meal.name.toLowerCase());
+  if (exists) { showToast('Already in Favorites'); return; }
+  state.favorites.push({id:uid(), name:meal.name, calories:meal.calories, protein:meal.protein, carbs:meal.carbs, fat:meal.fat, pinned:false, pinnedType:null});
+  save();
+  showToast('Saved to Favorites ⭐');
+}
+
+// ============================================================
+//  FROM FAVORITES
+// ============================================================
+function openFromFav(type) {
+  pendingMealType = type;
+  const list = document.getElementById('fav-select-list');
+  if (!state.favorites.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-ic">⭐</div><div class="empty-tx">No favorites yet</div><div class="empty-sub">Add meals and save them to favorites</div></div>`;
+  } else {
+    list.innerHTML = state.favorites.map(f => `
+      <div class="fsel-item" onclick="addFavToDay('${f.id}')">
+        <span style="font-size:20px">⭐</span>
+        <div class="fsel-nm">${esc(f.name)}</div>
+        <div style="font-size:11px;color:var(--muted);text-align:right">
+          <div class="fsel-cal">${f.calories} kcal</div>
+          <div>P${f.protein} C${f.carbs} F${f.fat}g</div>
+        </div>
+      </div>`).join('');
+  }
+  openOverlay('ov-from-fav');
+}
+
+function addFavToDay(favId) {
+  const fav = state.favorites.find(f => f.id === favId);
+  if (!fav) return;
+  if (!state.days[currentDate]) state.days[currentDate] = [];
+  state.days[currentDate].push({id:uid(), name:fav.name, type:pendingMealType, calories:fav.calories, protein:fav.protein, carbs:fav.carbs, fat:fav.fat, favId:fav.id});
+  save();
+  closeOverlay('ov-from-fav');
+  renderDay();
+  showToast('Added ' + fav.name + ' ✓');
+}
+
+function quickAddFav(favId, type) {
+  const fav = state.favorites.find(f => f.id === favId);
+  if (!fav) return;
+  if (!state.days[currentDate]) state.days[currentDate] = [];
+  state.days[currentDate].push({id:uid(), name:fav.name, type, calories:fav.calories, protein:fav.protein, carbs:fav.carbs, fat:fav.fat, favId:fav.id});
+  save();
+  renderDay();
+  showToast('Added ' + fav.name + ' ✓');
+}
+
+// ============================================================
+//  HISTORY VIEW
+// ============================================================
+function renderHistory() {
+  if (!calYear) {
+    const now = new Date();
+    calYear = now.getFullYear();
+    calMonth = now.getMonth();
+  }
+  renderCalendar();
+  renderHistDetail();
+}
+
+function renderCalendar() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month').textContent = months[calMonth] + ' ' + calYear;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Weekday headers
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-wd';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const today = todayStr();
+
+  // Empty cells
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-d empty';
+    grid.appendChild(el);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const el = document.createElement('div');
+    let cls = 'cal-d';
+    if (dateStr === today) cls += ' today';
+    else if (dateStr > today) cls += ' future';
+    if (histSelDate === dateStr) cls += ' sel';
+    el.className = cls;
+    el.textContent = day;
+
+    const meals = getDayMeals(dateStr);
+    if (meals.length) {
+      const totals = getDayTotals(dateStr);
+      const ratio2 = state.goals.calories > 0 ? totals.calories / state.goals.calories : 0;
+      let dotColor = 'var(--success)';
+      if (ratio2 > 1.1) dotColor = 'var(--danger)';
+      else if (ratio2 > 0.9) dotColor = 'var(--carbs)';
+      const dot = document.createElement('div');
+      dot.className = 'cal-dot';
+      dot.style.background = dotColor;
+      el.appendChild(dot);
+    }
+
+    if (dateStr !== today && dateStr <= today || dateStr >= today) {
+      el.onclick = () => { histSelDate = dateStr; renderCalendar(); renderHistDetail(); };
+    }
+    grid.appendChild(el);
+  }
+}
+
+function shiftCal(delta) {
+  calMonth += delta;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function renderHistDetail() {
+  const container = document.getElementById('hist-detail');
+  if (!histSelDate) {
+    container.innerHTML = `<div class="empty"><div class="empty-ic">📅</div><div class="empty-tx">Select a day to see details</div></div>`;
+    return;
+  }
+
+  const meals = getDayMeals(histSelDate);
+  const totals = getDayTotals(histSelDate);
+  const g = state.goals;
+
+  const mealsHTML = meals.length ? meals.map(m => `
+    <div class="hist-mi">
+      <span>${MEAL_TYPES.find(t=>t.id===m.type)?.emoji||'🍽️'}</span>
+      <div class="hist-mi-name">${esc(m.name)}</div>
+      <div class="hist-mi-cals">${m.calories} kcal</div>
+    </div>`).join('') : '<div style="padding:10px 0;font-size:13px;color:var(--muted)">No meals logged</div>';
+
+  const remCal = g.calories - totals.calories;
+
+  container.innerHTML = `
+    <div class="hist-detail">
+      <div class="hist-ttl">${fmtFullDate(histSelDate)}</div>
+      <div class="hist-row"><span class="hist-lbl">Calories</span><span class="hist-val ${totals.calories>g.calories?'over':''}">${Math.round(totals.calories)} / ${g.calories} kcal</span></div>
+      <div class="hist-row"><span class="hist-lbl">Protein</span><span class="hist-val">${Math.round(totals.protein)}g / ${g.protein}g</span></div>
+      <div class="hist-row"><span class="hist-lbl">Carbs</span><span class="hist-val">${Math.round(totals.carbs)}g / ${g.carbs}g</span></div>
+      <div class="hist-row"><span class="hist-lbl">Fat</span><span class="hist-val">${Math.round(totals.fat)}g / ${g.fat}g</span></div>
+      <div class="hist-row"><span class="hist-lbl">Balance</span><span class="hist-val ${remCal<0?'over':''}">${remCal>=0?'+':''}&thinsp;${Math.round(remCal)} kcal</span></div>
+      <div class="sep"></div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:8px">Meals (${meals.length})</div>
+      ${mealsHTML}
+      <button class="btn-p" style="margin-top:14px" onclick="goToDay('${histSelDate}')">
+        ${histSelDate >= todayStr() ? '📝 Plan / Edit this day' : '📋 View this day'}
+      </button>
+    </div>`;
+}
+
+function goToDay(dateStr) {
+  currentDate = dateStr;
+  switchView('day');
+}
+
+// ============================================================
+//  FAVORITES VIEW
+// ============================================================
+function renderFavorites() {
+  const container = document.getElementById('fav-list');
+  if (!state.favorites.length) {
+    container.innerHTML = `<div class="empty"><div class="empty-ic">⭐</div><div class="empty-tx">No favorites yet</div><div class="empty-sub">Add a meal, then tap the ★ icon to save it here</div></div>`;
+    return;
+  }
+  container.innerHTML = state.favorites.map(f => {
+    const pinBadge = f.pinned ? `<div class="fav-badge">📌 Daily ${MEAL_TYPES.find(t=>t.id===f.pinnedType)?.label||''}</div>` : '';
+    return `
+    <div class="fav-card">
+      <div class="fav-em" style="background:${f.pinned?'#fef3c7':'var(--bg)'}">⭐</div>
+      <div class="fav-info">
+        <div class="fav-name">${esc(f.name)}</div>
+        <div class="fav-mac">${f.calories} kcal · P${f.protein}g · C${f.carbs}g · F${f.fat}g</div>
+        ${pinBadge}
+      </div>
+      <div class="fav-acts">
+        <button class="btn-qadd2" onclick="openFavDetail('${f.id}')">Manage</button>
+        <button class="ibtn" onclick="addFavToCurrentDay('${f.id}')" title="Quick-add to today">
+          <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:3;fill:none;stroke:currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="ibtn del" onclick="deleteFav('${f.id}')" title="Delete">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addFavToCurrentDay(favId) {
+  const fav = state.favorites.find(f => f.id === favId);
+  if (!fav) return;
+  // pick the first meal type suggestion or breakfast
+  const typeToAdd = fav.pinnedType || 'snack';
+  pendingMealType = typeToAdd;
+  if (!state.days[currentDate]) state.days[currentDate] = [];
+  state.days[currentDate].push({id:uid(), name:fav.name, type:typeToAdd, calories:fav.calories, protein:fav.protein, carbs:fav.carbs, fat:fav.fat, favId:fav.id});
+  save();
+  showToast('Added to ' + fmtDate(currentDate));
+}
+
+function deleteFav(id) {
+  state.favorites = state.favorites.filter(f => f.id !== id);
+  save();
+  renderFavorites();
+  showToast('Removed from favorites');
+}
+
+// ============================================================
+//  FAVORITE DETAIL MODAL
+// ============================================================
+let activeFavId = null;
+let selectedPinType = null;
+
+function openFavDetail(favId) {
+  activeFavId = favId;
+  const fav = state.favorites.find(f => f.id === favId);
+  if (!fav) return;
+
+  selectedPinType = fav.pinnedType;
+
+  document.getElementById('fav-det-hdr').innerHTML = `
+    <div class="fav-det-em">⭐</div>
+    <div>
+      <div class="fav-det-name">${esc(fav.name)}</div>
+      <div class="fav-det-mac">${fav.calories} kcal</div>
+      <div class="mchips">
+        <span class="mchip p">P ${fav.protein}g</span>
+        <span class="mchip c">C ${fav.carbs}g</span>
+        <span class="mchip f">F ${fav.fat}g</span>
+      </div>
+    </div>`;
+
+  renderFavDetBody(fav);
+  openOverlay('ov-fav-det');
+}
+
+function renderFavDetBody(fav) {
+  const pinGridHTML = MEAL_TYPES.map(t => `
+    <button class="pin-btn ${selectedPinType===t.id?'on':''}" onclick="selectPinType('${t.id}')">
+      <span class="pin-em">${t.emoji}</span>
+      <div class="pin-lbl">${t.label}</div>
+    </button>`).join('');
+
+  document.getElementById('fav-det-body').innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:10px">Add to Today (${fmtDate(currentDate)})</div>
+      <div class="type-pills" style="margin-bottom:10px">
+        ${MEAL_TYPES.map(t=>`<button class="tpill ${(fav.pinnedType||'breakfast')===t.id?'on':''}" onclick="selectAddType(this,'${t.id}')">${t.emoji} ${t.label}</button>`).join('')}
+      </div>
+      <button class="btn-p" onclick="addFavFromDetail()">+ Add to ${fmtDate(currentDate)}</button>
+    </div>
+    <div class="sep"></div>
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:10px">
+      📌 Pin as Daily Meal
+    </div>
+    <div class="pin-grid">${pinGridHTML}</div>
+    ${fav.pinned
+      ? `<button class="btn-d" onclick="unpinFav()">Unpin Daily Meal</button>`
+      : `<button class="btn-p" onclick="pinFav()">Pin Selected Meal Type</button>`}
+    <div class="sep"></div>
+    <button class="btn-s" onclick="openFavEdit('${fav.id}')">✏️ Edit</button>
+    <button class="btn-d" onclick="deleteFavFromDetail('${fav.id}')">🗑️ Delete</button>`;
+}
+
+let detailAddType = null;
+
+function selectAddType(btn, typeId) {
+  detailAddType = typeId;
+  btn.closest('.type-pills').querySelectorAll('.tpill').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+function selectPinType(typeId) {
+  selectedPinType = typeId;
+  const fav = state.favorites.find(f => f.id === activeFavId);
+  if (fav) renderFavDetBody(fav);
+}
+
+function addFavFromDetail() {
+  const fav = state.favorites.find(f => f.id === activeFavId);
+  if (!fav) return;
+  // get selected type pill
+  const activePill = document.querySelector('#fav-det-body .type-pills .tpill.on');
+  const type = activePill ? MEAL_TYPES.find(t => activePill.textContent.includes(t.label))?.id || 'snack' : 'snack';
+  if (!state.days[currentDate]) state.days[currentDate] = [];
+  state.days[currentDate].push({id:uid(), name:fav.name, type, calories:fav.calories, protein:fav.protein, carbs:fav.carbs, fat:fav.fat, favId:fav.id});
+  save();
+  closeOverlay('ov-fav-det');
+  showToast('Added to ' + fmtDate(currentDate) + ' ✓');
+}
+
+function pinFav() {
+  if (!selectedPinType) { showToast('Select a meal type to pin'); return; }
+  const fav = state.favorites.find(f => f.id === activeFavId);
+  if (!fav) return;
+  fav.pinned = true;
+  fav.pinnedType = selectedPinType;
+  save();
+  closeOverlay('ov-fav-det');
+  renderFavorites();
+  showToast('📌 Pinned as daily ' + MEAL_TYPES.find(t=>t.id===selectedPinType)?.label);
+}
+
+function unpinFav() {
+  const fav = state.favorites.find(f => f.id === activeFavId);
+  if (!fav) return;
+  fav.pinned = false;
+  fav.pinnedType = null;
+  save();
+  closeOverlay('ov-fav-det');
+  renderFavorites();
+  showToast('Unpinned');
+}
+
+function deleteFavFromDetail(id) {
+  state.favorites = state.favorites.filter(f => f.id !== id);
+  save();
+  closeOverlay('ov-fav-det');
+  renderFavorites();
+  showToast('Removed from favorites');
+}
+
+// ============================================================
+//  FAVORITE EDIT MODAL
+// ============================================================
+function openFavEdit(favId) {
+  closeOverlay('ov-fav-det');
+  if (favId) {
+    const fav = state.favorites.find(f => f.id === favId);
+    if (!fav) return;
+    document.getElementById('fav-edit-title').textContent = 'Edit Favorite';
+    document.getElementById('fav-edit-id').value = fav.id;
+    document.getElementById('fe-name').value = fav.name;
+    document.getElementById('fe-cal').value = fav.calories;
+    document.getElementById('fe-pro').value = fav.protein;
+    document.getElementById('fe-car').value = fav.carbs;
+    document.getElementById('fe-fat').value = fav.fat;
+  } else {
+    document.getElementById('fav-edit-title').textContent = 'New Favorite';
+    document.getElementById('fav-edit-id').value = '';
+    document.getElementById('fe-name').value = '';
+    document.getElementById('fe-cal').value = '';
+    document.getElementById('fe-pro').value = '';
+    document.getElementById('fe-car').value = '';
+    document.getElementById('fe-fat').value = '';
+  }
+  openOverlay('ov-fav-edit');
+  setTimeout(() => document.getElementById('fe-name').focus(), 350);
+}
+
+function submitFavEdit() {
+  const name = document.getElementById('fe-name').value.trim();
+  if (!name) { showToast('Please enter a name'); return; }
+  const cal = parseNum(document.getElementById('fe-cal').value);
+  const pro = parseNum(document.getElementById('fe-pro').value);
+  const car = parseNum(document.getElementById('fe-car').value);
+  const fat = parseNum(document.getElementById('fe-fat').value);
+  const editId = document.getElementById('fav-edit-id').value;
+
+  if (editId) {
+    const fav = state.favorites.find(f => f.id === editId);
+    if (fav) Object.assign(fav, {name, calories:cal, protein:pro, carbs:car, fat});
+  } else {
+    state.favorites.push({id:uid(), name, calories:cal, protein:pro, carbs:car, fat, pinned:false, pinnedType:null});
+  }
+  save();
+  closeOverlay('ov-fav-edit');
+  renderFavorites();
+  showToast(editId ? 'Favorite updated' : 'Favorite saved ⭐');
+}
+
+// ============================================================
+//  SETTINGS VIEW
+// ============================================================
+function renderSettings() {
+  document.getElementById('g-cal').value = state.goals.calories;
+  document.getElementById('g-pro').value = state.goals.protein;
+  document.getElementById('g-car').value = state.goals.carbs;
+  document.getElementById('g-fat').value = state.goals.fat;
+}
+
+function saveGoals() {
+  state.goals.calories = parseNum(document.getElementById('g-cal').value) || 2000;
+  state.goals.protein  = parseNum(document.getElementById('g-pro').value) || 150;
+  state.goals.carbs    = parseNum(document.getElementById('g-car').value) || 250;
+  state.goals.fat      = parseNum(document.getElementById('g-fat').value) || 65;
+  save();
+  showToast('Goals saved ✓');
+}
+
+// ============================================================
+//  OVERLAY HELPERS
+// ============================================================
+function openOverlay(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('open');
+  // Only restore overflow if no other overlay is open
+  if (!document.querySelector('.overlay.open')) {
+    document.body.style.overflow = '';
+  }
+}
+
+function overlayClick(e, id) {
+  if (e.target === document.getElementById(id)) closeOverlay(id);
+}
+
+// ============================================================
+//  ESCAPE HTML
+// ============================================================
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+function init() {
+  state = loadState();
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderDay();
+}
+
+init();
+</script>
+</body>
+</html>

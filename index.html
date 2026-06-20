@@ -69,7 +69,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .btn-qadd{padding:5px 12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;transition:opacity .15s;font-family:inherit}
 .btn-qadd:hover{opacity:.85}
 /* Meal item */
-.mi{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px}
+.mi{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px;cursor:pointer;transition:background .12s}
+.mi:hover{background:var(--bg)}
 .mi:last-child{border-bottom:none}
 .mi-left{flex:1;min-width:0}
 .mi-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -737,7 +738,7 @@ function renderMealSections() {
     }).join('');
 
     const mealHTML = tm.map(m => `
-      <div class="mi">
+      <div class="mi" onclick="openMealEdit('${m.id}')">
         <div class="mi-left">
           <div class="mi-name trunc">${esc(m.name)}</div>
           <div class="mi-macros">P${m.protein}g · C${m.carbs}g · F${m.fat}g</div>
@@ -745,10 +746,10 @@ function renderMealSections() {
         </div>
         <div class="mi-right">
           <span class="mi-cals">${m.calories}</span>
-          <button class="ibtn" title="Save to Favorites" onclick="saveMealToFav('${m.id}')">
+          <button class="ibtn" title="Save to Favorites" onclick="event.stopPropagation();saveMealToFav('${m.id}')">
             <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </button>
-          <button class="ibtn del" title="Delete" onclick="deleteMeal('${m.id}')">
+          <button class="ibtn del" title="Delete" onclick="event.stopPropagation();deleteMeal('${m.id}')">
             <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
           </button>
         </div>
@@ -831,11 +832,10 @@ function setMealSource(src) {
   document.getElementById('stog-food').classList.toggle('on', src === 'food');
   document.getElementById('food-picker-wrap').style.display = src === 'food' ? '' : 'none';
   if (src === 'food') {
-    mealFoodItems = [];
     selectedFoodId = null;
     document.getElementById('food-search-meal').value = '';
     document.getElementById('food-servings-wrap').style.display = 'none';
-    document.getElementById('meal-food-list-wrap').style.display = 'none';
+    renderMealFoodList();
     filterFoodPicker();
     setTimeout(() => document.getElementById('food-search-meal').focus(), 100);
   }
@@ -952,6 +952,36 @@ function recalcMealTotals() {
   document.getElementById('meal-fat').value = +(mealFoodItems.reduce((s, i) => s + i.fat,     0)).toFixed(1);
 }
 
+function openMealEdit(mealId) {
+  const meal = (state.days[currentDate] || []).find(m => m.id === mealId);
+  if (!meal) return;
+  pendingMealType = meal.type;
+  mealFoodItems = meal.foodItems ? [...meal.foodItems] : [];
+  selectedFoodId = null;
+  document.getElementById('meal-modal-title').textContent = 'Edit Meal';
+  document.getElementById('meal-edit-id').value = meal.id;
+  document.getElementById('meal-name').value = meal.name;
+  document.getElementById('meal-cal').value = meal.calories;
+  document.getElementById('meal-pro').value = meal.protein;
+  document.getElementById('meal-car').value = meal.carbs;
+  document.getElementById('meal-fat').value = meal.fat;
+  document.getElementById('fchk-save').classList.remove('on');
+  document.getElementById('meal-save-fav').checked = false;
+  const src = mealFoodItems.length ? 'food' : 'custom';
+  mealSource = src;
+  document.getElementById('stog-custom').classList.toggle('on', src === 'custom');
+  document.getElementById('stog-food').classList.toggle('on', src === 'food');
+  document.getElementById('food-picker-wrap').style.display = src === 'food' ? '' : 'none';
+  if (src === 'food') {
+    document.getElementById('food-search-meal').value = '';
+    document.getElementById('food-servings-wrap').style.display = 'none';
+    renderMealFoodList();
+    filterFoodPicker();
+  }
+  renderTypePills('meal-type-pills', pendingMealType);
+  openOverlay('ov-meal');
+}
+
 function openAddMealWithFood(foodId) {
   openAddMeal(pendingMealType || 'snack');
   setTimeout(() => { setMealSource('food'); selectFoodForMeal(foodId); }, 380);
@@ -988,11 +1018,15 @@ function submitMeal() {
 
   if (!state.days[currentDate]) state.days[currentDate] = [];
   const entry = {id: eid || uid(), name, type: pendingMealType, calories: cal, protein: pro, carbs: car, fat,
-    ...(foodItems ? {foodItems} : {})};
+    ...(foodItems ? {foodItems} : {foodItems: undefined})};
 
   if (eid) {
     const idx = state.days[currentDate].findIndex(m => m.id === eid);
-    if (idx !== -1) state.days[currentDate][idx] = {...state.days[currentDate][idx], ...entry};
+    if (idx !== -1) {
+      const merged = {...state.days[currentDate][idx], ...entry};
+      if (!merged.foodItems) delete merged.foodItems;
+      state.days[currentDate][idx] = merged;
+    }
   } else {
     state.days[currentDate].push(entry);
   }

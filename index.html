@@ -614,7 +614,13 @@ function save() { localStorage.setItem('mt2', JSON.stringify(state)); }
 // ============================================================
 //  UTILITIES
 // ============================================================
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+function localDateStr(dt) {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, '0');
+  const d = String(dt.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+function todayStr() { return localDateStr(new Date()); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function parseNum(v) { const n = parseFloat(v); return isNaN(n) ? 0 : Math.max(0, n); }
 function clamp01(v) { return Math.min(1, Math.max(0, v)); }
@@ -628,9 +634,9 @@ function fmtDate(str) {
   const t = todayStr();
   if (str === t) return 'Today';
   const tmr = new Date(); tmr.setDate(tmr.getDate()+1);
-  if (str === tmr.toISOString().split('T')[0]) return 'Tomorrow';
+  if (str === localDateStr(tmr)) return 'Tomorrow';
   const yest = new Date(); yest.setDate(yest.getDate()-1);
-  if (str === yest.toISOString().split('T')[0]) return 'Yesterday';
+  if (str === localDateStr(yest)) return 'Yesterday';
   return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
 }
 
@@ -789,7 +795,7 @@ function shiftDate(delta) {
   const [y,m,d] = currentDate.split('-').map(Number);
   const dt = new Date(y, m-1, d);
   dt.setDate(dt.getDate() + delta);
-  currentDate = dt.toISOString().split('T')[0];
+  currentDate = localDateStr(dt);
   renderDay();
 }
 

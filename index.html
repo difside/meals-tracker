@@ -406,8 +406,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
       <div id="food-servings-wrap" style="display:none">
         <div id="food-sel-preview" class="food-sel-preview"></div>
         <div class="servings-row">
-          <label class="fl">Servings</label>
-          <input class="servings-inp" id="meal-servings" type="number" min="0.1" step="0.1" value="1" oninput="updateFromFood()">
+          <label class="fl">Amount</label>
+          <input class="servings-inp" id="meal-servings" type="number" min="0.1" step="any" value="100" oninput="updateFromFood()">
           <span class="servings-unit" id="servings-unit-lbl"></span>
         </div>
       </div>
@@ -715,7 +715,7 @@ function renderMealSections() {
       <div class="mi">
         <div class="mi-left">
           <div class="mi-name trunc">${esc(m.name)}</div>
-          <div class="mi-macros">P${m.protein}g · C${m.carbs}g · F${m.fat}g${m.foodId ? ' · '+m.servings+'× srv' : ''}</div>
+          <div class="mi-macros">P${m.protein}g · C${m.carbs}g · F${m.fat}g${m.foodId && m.amount ? ' · '+m.amount+m.amountUnit : ''}</div>
         </div>
         <div class="mi-right">
           <span class="mi-cals">${m.calories}</span>
@@ -837,8 +837,8 @@ function selectFoodForMeal(foodId) {
   if (!food) return;
   if (!document.getElementById('meal-name').value) document.getElementById('meal-name').value = food.name;
   document.getElementById('food-servings-wrap').style.display = '';
-  document.getElementById('meal-servings').value = 1;
-  document.getElementById('servings-unit-lbl').textContent = `× ${food.servingSize}${food.servingUnit} per serving`;
+  document.getElementById('meal-servings').value = food.servingSize;
+  document.getElementById('servings-unit-lbl').textContent = food.servingUnit;
   updateFromFood();
   filterFoodPicker();
 }
@@ -846,14 +846,19 @@ function selectFoodForMeal(foodId) {
 function updateFromFood() {
   const food = state.foods.find(f => f.id === selectedFoodId);
   if (!food) return;
-  const srv = parseNum(document.getElementById('meal-servings').value) || 1;
-  document.getElementById('meal-cal').value = Math.round(food.calories * srv);
-  document.getElementById('meal-pro').value = +(food.protein * srv).toFixed(1);
-  document.getElementById('meal-car').value = +(food.carbs   * srv).toFixed(1);
-  document.getElementById('meal-fat').value = +(food.fat     * srv).toFixed(1);
+  const amount = parseNum(document.getElementById('meal-servings').value) || food.servingSize;
+  const ratio = amount / food.servingSize;
+  const cal = Math.round(food.calories * ratio);
+  const pro = +(food.protein * ratio).toFixed(1);
+  const car = +(food.carbs   * ratio).toFixed(1);
+  const fat = +(food.fat     * ratio).toFixed(1);
+  document.getElementById('meal-cal').value = cal;
+  document.getElementById('meal-pro').value = pro;
+  document.getElementById('meal-car').value = car;
+  document.getElementById('meal-fat').value = fat;
   document.getElementById('food-sel-preview').innerHTML = `
-    <div class="food-sel-name">📦 ${esc(food.name)} — ${srv} serving${srv !== 1 ? 's' : ''}</div>
-    <div class="food-sel-macros">${Math.round(food.calories * srv)} kcal · P${+(food.protein*srv).toFixed(1)}g · C${+(food.carbs*srv).toFixed(1)}g · F${+(food.fat*srv).toFixed(1)}g</div>`;
+    <div class="food-sel-name">📦 ${esc(food.name)} — ${amount}${food.servingUnit}</div>
+    <div class="food-sel-macros">${cal} kcal · P${pro}g · C${car}g · F${fat}g</div>`;
 }
 
 function openAddMealWithFood(foodId) {
@@ -888,11 +893,12 @@ function submitMeal() {
   const fat = parseNum(document.getElementById('meal-fat').value);
   const eid = document.getElementById('meal-edit-id').value;
   const stf = document.getElementById('meal-save-fav').checked;
-  const srv = mealSource === 'food' && selectedFoodId ? parseNum(document.getElementById('meal-servings').value) || 1 : null;
+  const foodForMeal = mealSource === 'food' && selectedFoodId ? state.foods.find(f => f.id === selectedFoodId) : null;
+  const amt = foodForMeal ? (parseNum(document.getElementById('meal-servings').value) || foodForMeal.servingSize) : null;
 
   if (!state.days[currentDate]) state.days[currentDate] = [];
   const entry = {id: eid || uid(), name, type: pendingMealType, calories: cal, protein: pro, carbs: car, fat,
-    ...(selectedFoodId && mealSource === 'food' ? {foodId: selectedFoodId, servings: srv} : {})};
+    ...(foodForMeal ? {foodId: selectedFoodId, amount: amt, amountUnit: foodForMeal.servingUnit} : {})};
 
   if (eid) {
     const idx = state.days[currentDate].findIndex(m => m.id === eid);

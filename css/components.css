@@ -39,7 +39,7 @@
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* Auth screen */
-#auth-screen{position:fixed;inset:0;z-index:200;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
+#auth-screen{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
 .auth-wrap{width:100%;max-width:360px;text-align:center}
 .auth-logo{font-size:56px;margin-bottom:12px}
 .auth-title{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}

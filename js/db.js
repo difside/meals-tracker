@@ -2,7 +2,13 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { store, defaultState } from './store.js';
 import { showToast, showCloudError } from './utils.js';
 
-export const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let _sb = null;
+try {
+  if (typeof window !== 'undefined' && window.supabase) {
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+} catch (e) { console.error('Supabase init error:', e); }
+export const sb = _sb;
 
 export async function loadStateCloud(userId) {
   const [goalsRes, mealsRes, favsRes, foodsRes] = await Promise.all([

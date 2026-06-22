@@ -19,6 +19,7 @@ export function showLoadingScreen() { document.getElementById('loading-screen').
 export function hideLoadingScreen() { document.getElementById('loading-screen').style.display = 'none'; }
 
 export async function signInWithGoogle() {
+  if (!sb) { showToast('Auth unavailable — check connection'); return; }
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.href },
@@ -27,6 +28,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signInWithEmail() {
+  if (!sb) { showToast('Auth unavailable — check connection'); return; }
   const email = document.getElementById('auth-email').value.trim();
   if (!email) { showToast('Enter your email address'); return; }
   const btn = document.querySelector('.auth-btn-email');
@@ -40,7 +42,7 @@ export async function signInWithEmail() {
 }
 
 export async function signOut() {
-  await sb.auth.signOut();
+  if (sb) await sb.auth.signOut();
   store.currentUserId = null;
   applyState(defaultState());
   showAuthUI();
@@ -48,41 +50,50 @@ export async function signOut() {
 }
 
 export async function init() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) { showAuthUI(); return; }
-  store.currentUserId = session.user.id;
-
-  hideAuthUI();
-  showLoadingScreen();
-
   try {
-    const cloudState = await loadStateCloud(store.currentUserId);
-    const cloudEmpty = !Object.keys(cloudState.days).length
-      && !cloudState.favorites.length && !cloudState.foods.length
-      && cloudState.goals.calories === defaultState().goals.calories;
-    if (cloudEmpty) {
-      const local = loadStateLocal();
-      const hasLocal = Object.keys(local.days).length || local.favorites.length || local.foods.length;
-      applyState(local);
-      if (hasLocal) migrateToCloud(store.currentUserId, local);
-    } else {
-      applyState(cloudState);
-    }
-  } catch (e) {
-    console.error('Cloud load error:', e);
-    applyState(loadStateLocal());
-    showToast('⚠️ Running offline — data saved locally');
-  }
+    if (!sb) { showAuthUI(); return; }
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { showAuthUI(); return; }
+    store.currentUserId = session.user.id;
 
-  if (!store.state.foods) store.state.foods = [];
-  const n = new Date();
-  store.calYear  = n.getFullYear();
-  store.calMonth = n.getMonth();
-  hideLoadingScreen();
-  renderDay();
+    hideAuthUI();
+    showLoadingScreen();
+
+    try {
+      const cloudState = await loadStateCloud(store.currentUserId);
+      const cloudEmpty = !Object.keys(cloudState.days).length
+        && !cloudState.favorites.length && !cloudState.foods.length
+        && cloudState.goals.calories === defaultState().goals.calories;
+      if (cloudEmpty) {
+        const local = loadStateLocal();
+        const hasLocal = Object.keys(local.days).length || local.favorites.length || local.foods.length;
+        applyState(local);
+        if (hasLocal) migrateToCloud(store.currentUserId, local);
+      } else {
+        applyState(cloudState);
+      }
+    } catch (e) {
+      console.error('Cloud load error:', e);
+      applyState(loadStateLocal());
+      showToast('⚠️ Running offline — data saved locally');
+    }
+
+    if (!store.state.foods) store.state.foods = [];
+    const n = new Date();
+    store.calYear  = n.getFullYear();
+    store.calMonth = n.getMonth();
+    hideLoadingScreen();
+    renderDay();
+  } catch (e) {
+    console.error('Init error:', e);
+    applyState(loadStateLocal());
+    hideLoadingScreen();
+    showAuthUI();
+  }
 }
 
 export function initAuthListener() {
+  if (!sb) return;
   sb.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_IN') init();
     if (event === 'SIGNED_OUT') showAuthUI();

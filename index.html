@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Meal Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/views.css">
+</head>
+<body>
+
+<!-- Loading screen -->
+<div id="loading-screen">
+  <div class="loading-spinner"></div>
+  <div class="loading-txt">Loading your data…</div>
+</div>
+
+<!-- Auth screen -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-logo">🥗</div>
+    <div class="auth-title">Meal Tracker</div>
+    <div class="auth-sub">Track your nutrition, anywhere</div>
+    <button class="auth-btn auth-btn-google" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+    <div class="auth-divider"><span>or</span></div>
+    <input class="fi" id="auth-email" type="email" placeholder="your@email.com" style="margin-bottom:8px">
+    <button class="auth-btn auth-btn-email" onclick="signInWithEmail()">✉️ Send Magic Link</button>
+    <div class="auth-sent" id="auth-email-sent">Check your email for the sign-in link!</div>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+
+<!-- HEADER -->
+<header class="hdr">
+  <span style="font-size:22px">🥗</span>
+  <div class="hdr-title">Meal Tracker</div>
+  <button class="signout-btn" id="signout-btn" onclick="signOut()" style="display:none">Sign out</button>
+</header>
+
+<!-- MAIN -->
+<main class="main" id="main">
+
+<!-- DAY VIEW -->
+<div id="view-day" class="view active">
+  <div class="date-nav">
+    <button class="date-arrow" onclick="shiftDate(-1)"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div class="date-center">
+      <div class="date-text" onclick="openDatePicker()" id="date-text">—</div>
+      <div id="date-badge"></div>
+    </div>
+    <button class="date-arrow" onclick="shiftDate(1)"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>
+  </div>
+  <div class="card cal-card">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 128 128">
+        <circle cx="64" cy="64" r="54" fill="none" stroke="#f0f0f0" stroke-width="11"/>
+        <circle id="ring-track" cx="64" cy="64" r="54" fill="none" stroke="var(--primary)" stroke-width="11"
+          stroke-linecap="round" stroke-dasharray="339.29 339.29" transform="rotate(-90 64 64)"
+          style="transition:stroke-dasharray .5s ease,stroke .3s"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-num" id="ring-num">—</div>
+        <div class="ring-lbl" id="ring-lbl">remaining</div>
+      </div>
+    </div>
+    <div class="cal-stats">
+      <div class="cal-stat"><span class="cal-stat-lbl">Goal</span><span class="cal-stat-val" id="cstat-goal">—</span></div>
+      <div style="height:1px;background:var(--border)"></div>
+      <div class="cal-stat"><span class="cal-stat-lbl">Consumed</span><span class="cal-stat-val" id="cstat-consumed">—</span></div>
+      <div style="height:1px;background:var(--border)"></div>
+      <div class="cal-stat"><span class="cal-stat-lbl">Remaining</span><span class="cal-stat-val" id="cstat-remaining">—</span></div>
+    </div>
+  </div>
+  <div class="card macro-card">
+    <div class="macro-card-ttl">Macros</div>
+    <div class="macro-row"><span class="macro-nm" style="color:var(--protein)">Protein</span><div class="macro-bar"><div class="macro-fill" id="bar-p" style="background:var(--protein)"></div></div><div class="macro-vals" id="val-p">—</div></div>
+    <div class="macro-row"><span class="macro-nm" style="color:var(--carbs)">Carbs</span><div class="macro-bar"><div class="macro-fill" id="bar-c" style="background:var(--carbs)"></div></div><div class="macro-vals" id="val-c">—</div></div>
+    <div class="macro-row"><span class="macro-nm" style="color:var(--fat)">Fat</span><div class="macro-bar"><div class="macro-fill" id="bar-f" style="background:var(--fat)"></div></div><div class="macro-vals" id="val-f">—</div></div>
+  </div>
+  <div id="meal-sections"></div>
+</div>
+
+<!-- HISTORY VIEW -->
+<div id="view-history" class="view">
+  <div class="pg-hdr"><div class="pg-ttl">History</div></div>
+  <div class="cal-wrap">
+    <div class="cal-nav">
+      <button class="date-arrow" onclick="shiftCal(-1)"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke-width:2.5;fill:none;stroke:currentColor"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="cal-month" id="cal-month">—</div>
+      <button class="date-arrow" onclick="shiftCal(1)"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke-width:2.5;fill:none;stroke:currentColor"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <div id="hist-detail"></div>
+</div>
+
+<!-- FOODS VIEW -->
+<div id="view-foods" class="view">
+  <div class="pg-hdr">
+    <div class="pg-ttl">Foods</div>
+    <button class="btn-add" onclick="openFoodEdit(null)">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:3;fill:none;stroke:currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Food
+    </button>
+  </div>
+  <div class="food-search-wrap">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="food-search-inp" id="food-search-inp" type="text" placeholder="Search foods…" oninput="renderFoods()">
+  </div>
+  <div id="food-list"></div>
+</div>
+
+<!-- FAVORITES VIEW -->
+<div id="view-favorites" class="view">
+  <div class="pg-hdr">
+    <div class="pg-ttl">Favorites</div>
+    <button class="btn-add" onclick="openFavEdit(null)">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke-width:3;fill:none;stroke:currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New
+    </button>
+  </div>
+  <div id="fav-list"></div>
+</div>
+
+<!-- SETTINGS VIEW -->
+<div id="view-settings" class="view">
+  <div class="pg-hdr"><div class="pg-ttl">Settings</div></div>
+  <div class="set-card">
+    <div class="set-ttl">Daily Goals</div>
+    <div class="goal-row"><div class="goal-lbl">🔥 Calories <span class="goal-unit">kcal</span></div><input class="goal-inp" type="number" id="g-cal" min="0" onchange="saveGoals()"></div>
+    <div class="goal-row"><div class="goal-lbl" style="color:var(--protein)">Protein <span class="goal-unit">g</span></div><input class="goal-inp" type="number" id="g-pro" min="0" onchange="saveGoals()"></div>
+    <div class="goal-row"><div class="goal-lbl" style="color:var(--carbs)">Carbs <span class="goal-unit">g</span></div><input class="goal-inp" type="number" id="g-car" min="0" onchange="saveGoals()"></div>
+    <div class="goal-row"><div class="goal-lbl" style="color:var(--fat)">Fat <span class="goal-unit">g</span></div><input class="goal-inp" type="number" id="g-fat" min="0" onchange="saveGoals()"></div>
+  </div>
+  <div class="set-card">
+    <div class="set-ttl">About</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.6">Your data is securely stored in the cloud and synced across devices.</div>
+  </div>
+</div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bnav">
+  <button class="bnav-btn active" id="nb-day" onclick="switchView('day')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>Today
+  </button>
+  <button class="bnav-btn" id="nb-history" onclick="switchView('history')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>History
+  </button>
+  <button class="bnav-btn" id="nb-foods" onclick="switchView('foods')">
+    <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><circle cx="18" cy="6" r="4"/><line x1="18" y1="2" x2="18" y2="4"/><line x1="18" y1="8" x2="18" y2="10"/><line x1="14" y1="6" x2="16" y2="6"/><line x1="20" y1="6" x2="22" y2="6"/></svg>Foods
+  </button>
+  <button class="bnav-btn" id="nb-favorites" onclick="switchView('favorites')">
+    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>Favorites
+  </button>
+  <button class="bnav-btn" id="nb-settings" onclick="switchView('settings')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings
+  </button>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ============ MODAL: Add/Edit Meal ============ -->
+<div class="overlay" id="ov-meal" onclick="overlayClick(event,'ov-meal')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title" id="meal-modal-title">Add Meal</div>
+    <input type="hidden" id="meal-edit-id">
+
+    <div class="fg">
+      <label class="fl">Source</label>
+      <div class="stog-wrap">
+        <button class="stog-btn on" id="stog-custom" onclick="setMealSource('custom')">✏️ Custom Entry</button>
+        <button class="stog-btn" id="stog-food" onclick="setMealSource('food')">🥦 From Foods</button>
+      </div>
+    </div>
+
+    <div id="food-picker-wrap" style="display:none">
+      <div id="meal-food-list-wrap" style="display:none">
+        <label class="fl">Added Foods</label>
+        <div class="meal-food-list" id="meal-food-items"></div>
+      </div>
+      <div class="fg">
+        <label class="fl">Add a Food</label>
+        <input class="fi" id="food-search-meal" type="text" placeholder="Search your food database…" oninput="filterFoodPicker()" autocomplete="off">
+        <div class="food-picker-list" id="food-picker-list">
+          <div class="fpick-no-results">Start typing to search foods</div>
+        </div>
+      </div>
+      <div id="food-servings-wrap" style="display:none">
+        <div id="food-sel-preview" class="food-sel-preview"></div>
+        <div class="servings-row">
+          <label class="fl">Amount</label>
+          <input class="servings-inp" id="meal-servings" type="number" min="0.1" step="any" value="100" oninput="updateFromFood()">
+          <span class="servings-unit" id="servings-unit-lbl"></span>
+        </div>
+        <button class="btn-add-food" onclick="addFoodToMeal()">+ Add to Meal</button>
+      </div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Meal Name</label>
+      <input class="fi" id="meal-name" type="text" placeholder="e.g. Grilled Chicken" autocomplete="off">
+    </div>
+    <div class="fg">
+      <label class="fl">Calories (kcal)</label>
+      <input class="fi" id="meal-cal" type="number" min="0" placeholder="0">
+    </div>
+    <div class="fg">
+      <label class="fl">Macros (g)</label>
+      <div class="fg3">
+        <div><label class="fl" style="color:var(--protein)">Protein</label><input class="fi" id="meal-pro" type="number" min="0" placeholder="0"></div>
+        <div><label class="fl" style="color:var(--carbs)">Carbs</label><input class="fi" id="meal-car" type="number" min="0" placeholder="0"></div>
+        <div><label class="fl" style="color:var(--fat)">Fat</label><input class="fi" id="meal-fat" type="number" min="0" placeholder="0"></div>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Meal Type</label>
+      <div class="type-pills" id="meal-type-pills"></div>
+    </div>
+    <div class="fg">
+      <label class="fchk" id="fchk-save" onclick="toggleCheck('fchk-save','meal-save-fav')">
+        <input type="checkbox" id="meal-save-fav">
+        <label for="meal-save-fav">⭐ Save to Favorites</label>
+      </label>
+    </div>
+    <button class="btn-p" onclick="submitMeal()">Save Meal</button>
+    <button class="btn-s" onclick="closeOverlay('ov-meal')">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: Select from Favorites ============ -->
+<div class="overlay" id="ov-from-fav" onclick="overlayClick(event,'ov-from-fav')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title">Add from Favorites</div>
+    <div id="fav-select-list"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Favorite Edit ============ -->
+<div class="overlay" id="ov-fav-edit" onclick="overlayClick(event,'ov-fav-edit')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title" id="fav-edit-title">New Favorite</div>
+    <input type="hidden" id="fav-edit-id">
+    <div class="fg"><label class="fl">Name</label><input class="fi" id="fe-name" type="text" placeholder="e.g. Oatmeal Bowl" autocomplete="off"></div>
+    <div class="fg"><label class="fl">Calories (kcal)</label><input class="fi" id="fe-cal" type="number" min="0" placeholder="0"></div>
+    <div class="fg">
+      <label class="fl">Macros (g)</label>
+      <div class="fg3">
+        <div><label class="fl" style="color:var(--protein)">Protein</label><input class="fi" id="fe-pro" type="number" min="0" placeholder="0"></div>
+        <div><label class="fl" style="color:var(--carbs)">Carbs</label><input class="fi" id="fe-car" type="number" min="0" placeholder="0"></div>
+        <div><label class="fl" style="color:var(--fat)">Fat</label><input class="fi" id="fe-fat" type="number" min="0" placeholder="0"></div>
+      </div>
+    </div>
+    <button class="btn-p" onclick="submitFavEdit()">Save</button>
+    <button class="btn-s" onclick="closeOverlay('ov-fav-edit')">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: Favorite Detail ============ -->
+<div class="overlay" id="ov-fav-det" onclick="overlayClick(event,'ov-fav-det')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="fav-det-hdr" id="fav-det-hdr"></div>
+    <div id="fav-det-body"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: Food Edit ============ -->
+<div class="overlay" id="ov-food-edit" onclick="overlayClick(event,'ov-food-edit')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title" id="food-edit-title">Add Food</div>
+    <input type="hidden" id="food-edit-id">
+    <div class="fg">
+      <label class="fl">Food Name</label>
+      <input class="fi" id="food-edit-name" type="text" placeholder="e.g. Chicken Breast" autocomplete="off">
+    </div>
+    <div class="fg">
+      <label class="fl">Serving Size</label>
+      <div class="fg2">
+        <input class="fi" id="food-edit-srv-size" type="number" min="0" placeholder="100">
+        <select class="fi fsel" id="food-edit-srv-unit">
+          <option value="g">g (grams)</option>
+          <option value="oz">oz (ounces)</option>
+          <option value="ml">ml</option>
+          <option value="cup">cup</option>
+          <option value="tbsp">tbsp</option>
+          <option value="tsp">tsp</option>
+          <option value="piece">piece</option>
+          <option value="slice">slice</option>
+          <option value="serving">serving</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg">
+      <label class="fl">Calories per Serving (kcal)</label>
+      <input class="fi" id="food-edit-cal" type="number" min="0" placeholder="0">
+    </div>
+    <div class="fg">
+      <label class="fl">Macros per Serving (g)</label>
+      <div class="fg3">
+        <div><label class="fl" style="color:var(--protein)">Protein</label><input class="fi" id="food-edit-pro" type="number" min="0" placeholder="0"></div>
+        <div><label class="fl" style="color:var(--carbs)">Carbs</label><input class="fi" id="food-edit-car" type="number" min="0" placeholder="0"></div>
+        <div><label class="fl" style="color:var(--fat)">Fat</label><input class="fi" id="food-edit-fat" type="number" min="0" placeholder="0"></div>
+      </div>
+    </div>
+    <button class="btn-p" onclick="submitFood()">Save Food</button>
+    <button class="btn-s" onclick="closeOverlay('ov-food-edit')">Cancel</button>
+    <button class="btn-d" id="food-delete-btn" style="display:none" onclick="deleteFoodFromModal()">Delete Food</button>
+  </div>
+</div>
+
+<!-- ============ MODAL: Date Picker ============ -->
+<div class="overlay" id="ov-date" onclick="overlayClick(event,'ov-date')">
+  <div class="sheet">
+    <div class="sheet-handle"><div class="handle-bar"></div></div>
+    <div class="sheet-title">Jump to Date</div>
+    <div class="fg"><label class="fl">Select Date</label><input class="fi" id="date-picker-input" type="date"></div>
+    <button class="btn-p" onclick="jumpToDate()">Go to Date</button>
+    <button class="btn-s" onclick="closeOverlay('ov-date')">Cancel</button>
+  </div>
+</div>
+
+</div><!-- #app -->
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

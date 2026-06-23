@@ -15,7 +15,7 @@ export async function loadStateCloud(userId) {
     sb.from('user_goals').select('*').eq('user_id', userId).maybeSingle(),
     sb.from('meals').select('*').eq('user_id', userId).order('created_at'),
     sb.from('favorites').select('*').eq('user_id', userId),
-    sb.from('foods').select('*').eq('user_id', userId),
+    sb.from('foods').select('*').order('name'),
   ]);
   const days = {};
   for (const m of mealsRes.data || []) {
@@ -37,6 +37,7 @@ export async function loadStateCloud(userId) {
     id: f.id, name: f.name,
     servingSize: f.serving_size, servingUnit: f.serving_unit,
     calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
+    userId: f.user_id,
   }));
   return {
     goals: goalsRes.data

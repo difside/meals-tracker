@@ -17,7 +17,9 @@ export function renderFoods() {
     container.innerHTML = `<div class="empty"><div class="empty-ic">🔍</div><div class="empty-tx">No foods match "${esc(q)}"</div></div>`;
     return;
   }
-  container.innerHTML = filtered.map(f => `
+  container.innerHTML = filtered.map(f => {
+    const isOwner = !f.userId || f.userId === store.currentUserId;
+    return `
     <div class="food-card">
       <div class="food-ic">${getFoodEmoji(f)}</div>
       <div class="food-info">
@@ -29,14 +31,16 @@ export function renderFoods() {
         <button class="btn-p" style="width:auto;padding:7px 12px;font-size:12px;margin-top:0;border-radius:10px" onclick="openAddMealWithFood('${f.id}')">
           + Add
         </button>
+        ${isOwner ? `
         <button class="ibtn" onclick="openFoodEdit('${f.id}')" title="Edit">
           <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
         <button class="ibtn del" onclick="deleteFood('${f.id}')" title="Delete">
           <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-        </button>
+        </button>` : ''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 export function openFoodEdit(foodId) {

@@ -33,11 +33,12 @@ export async function signInWithEmail() {
   if (!email) { showToast('Enter your email address'); return; }
   const btn = document.querySelector('.auth-btn-email');
   btn.disabled = true; btn.textContent = 'Sending…';
+  const redirectTo = window.location.origin + window.location.pathname;
   const { error } = await sb.auth.signInWithOtp({
-    email, options: { emailRedirectTo: window.location.href },
+    email, options: { emailRedirectTo: redirectTo },
   });
   btn.disabled = false; btn.textContent = '✉️ Send Magic Link';
-  if (error) { showToast('Error: ' + error.message); return; }
+  if (error) { showToast('Error: ' + error.message, 5000); return; }
   document.getElementById('auth-email-sent').style.display = 'block';
 }
 

@@ -45,11 +45,11 @@ export function getDayTotals(d) {
   }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
 }
 
-export function showToast(msg) {
+export function showToast(msg, duration = 2200) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+  setTimeout(() => t.classList.remove('show'), duration);
 }
 
 export function showCloudError() { showToast('⚠️ Sync error — data saved locally'); }

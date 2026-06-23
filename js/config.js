@@ -1,5 +1,5 @@
-export const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
-export const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+export const SUPABASE_URL      = 'https://bxgxncmfvfxbbplpyqti.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4Z3huY21mdmZ4YmJwbHB5cXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzczNzQsImV4cCI6MjA5NzgxMzM3NH0.pds4Naqv10hVroHueukHBTYyyNi0HGBU3cle7h1_fGA';
 
 export const MEAL_TYPES = [
   { id: 'breakfast', label: 'Breakfast', emoji: '☀️', bg: '#fff9c4' },

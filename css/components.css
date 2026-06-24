@@ -39,8 +39,9 @@
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* Auth overlay */
-#auth-screen{position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .25s}
-#auth-screen.open{opacity:1;pointer-events:all}
+#auth-screen{position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:24px}
+#auth-screen.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .auth-wrap{width:100%;max-width:360px;text-align:center;background:var(--card);border-radius:24px;padding:28px 24px 32px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .auth-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border:none;border-radius:50%;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
 .auth-logo{font-size:44px;margin-bottom:10px}

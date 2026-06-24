@@ -25,7 +25,7 @@ export function renderFoods() {
       <div class="food-info">
         <div class="food-name">${esc(f.name)}</div>
         <div class="food-srv">Per ${f.servingSize} ${f.servingUnit}</div>
-        <div class="food-mac">${f.calories} kcal · P${f.protein}g · C${f.carbs}g · F${f.fat}g</div>
+        <div class="food-mac">${f.calories} kcal · P${f.protein}g · C${f.carbs}g · F${f.fat}g${f.saturatedFat ? ` · Sat ${f.saturatedFat}g` : ''}${f.transFat ? ` · Trans ${f.transFat}g` : ''}</div>
       </div>
       <div class="food-acts">
         <button class="btn-p" style="width:auto;padding:7px 12px;font-size:12px;margin-top:0;border-radius:10px" onclick="openAddMealWithFood('${f.id}')">
@@ -58,6 +58,8 @@ export function openFoodEdit(foodId) {
     document.getElementById('food-edit-pro').value      = f.protein;
     document.getElementById('food-edit-car').value      = f.carbs;
     document.getElementById('food-edit-fat').value      = f.fat;
+    document.getElementById('food-edit-sat').value      = f.saturatedFat || '';
+    document.getElementById('food-edit-trans').value    = f.transFat || '';
   } else {
     document.getElementById('food-edit-name').value     = '';
     document.getElementById('food-edit-srv-size').value = 100;
@@ -66,6 +68,8 @@ export function openFoodEdit(foodId) {
     document.getElementById('food-edit-pro').value      = '';
     document.getElementById('food-edit-car').value      = '';
     document.getElementById('food-edit-fat').value      = '';
+    document.getElementById('food-edit-sat').value      = '';
+    document.getElementById('food-edit-trans').value    = '';
   }
   openOverlay('ov-food-edit');
   setTimeout(() => document.getElementById('food-edit-name').focus(), 350);
@@ -80,13 +84,15 @@ export function submitFood() {
   const pro = parseNum(document.getElementById('food-edit-pro').value);
   const car = parseNum(document.getElementById('food-edit-car').value);
   const fat = parseNum(document.getElementById('food-edit-fat').value);
+  const saturatedFat = parseNum(document.getElementById('food-edit-sat').value);
+  const transFat = parseNum(document.getElementById('food-edit-trans').value);
   const eid = document.getElementById('food-edit-id').value;
   const state = store.state;
   if (eid) {
     const f = state.foods.find(f => f.id === eid);
-    if (f) { Object.assign(f, { name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat }); cloudSyncFood(f); }
+    if (f) { Object.assign(f, { name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat, saturatedFat, transFat }); cloudSyncFood(f); }
   } else {
-    const food = { id: uid(), name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat };
+    const food = { id: uid(), name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat, saturatedFat, transFat };
     state.foods.push(food);
     cloudSyncFood(food);
   }

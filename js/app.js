@@ -7,6 +7,7 @@ import { renderHistory, shiftCal, goToDay } from './history.js';
 import { renderFavorites, addFavToCurrentDay, deleteFav, openFavDetail, selectAddType, selectPinType, addFavFromDetail, pinFav, unpinFav, deleteFavFromDetail, openFavEdit, submitFavEdit } from './favorites.js';
 import { renderFoods, openFoodEdit, submitFood, deleteFood, deleteFoodFromModal } from './foods.js';
 import { renderSettings, saveGoals } from './settings.js';
+import { openScanner, closeScanner } from './scanner.js';
 
 // ---- View switcher (needs access to all renderers) ----
 function switchView(v) {
@@ -41,6 +42,8 @@ Object.assign(window, {
   deleteFavFromDetail, openFavEdit, submitFavEdit,
   // foods
   renderFoods, openFoodEdit, submitFood, deleteFood, deleteFoodFromModal,
+  // scanner
+  openScanner, closeScanner,
   // settings
   renderSettings, saveGoals,
 });

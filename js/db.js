@@ -38,6 +38,7 @@ export async function loadStateCloud(userId) {
     servingSize: f.serving_size, servingUnit: f.serving_unit,
     calories: f.calories, protein: f.protein, carbs: f.carbs, fat: f.fat,
     saturatedFat: f.saturated_fat ?? 0, transFat: f.trans_fat ?? 0,
+    barcode: f.barcode || null,
     userId: f.user_id,
   }));
   return {
@@ -120,6 +121,7 @@ export function cloudSyncFood(food) {
     name: food.name, serving_size: food.servingSize, serving_unit: food.servingUnit,
     calories: food.calories, protein: food.protein, carbs: food.carbs, fat: food.fat,
     saturated_fat: food.saturatedFat ?? 0, trans_fat: food.transFat ?? 0,
+    barcode: food.barcode || null,
   }).then(({ error }) => { if (error) showCloudError(); });
 }
 

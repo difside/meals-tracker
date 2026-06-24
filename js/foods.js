@@ -60,6 +60,7 @@ export function openFoodEdit(foodId) {
     document.getElementById('food-edit-fat').value      = f.fat;
     document.getElementById('food-edit-sat').value      = f.saturatedFat || '';
     document.getElementById('food-edit-trans').value    = f.transFat || '';
+    document.getElementById('food-edit-barcode').value  = f.barcode || '';
   } else {
     document.getElementById('food-edit-name').value     = '';
     document.getElementById('food-edit-srv-size').value = 100;
@@ -70,6 +71,7 @@ export function openFoodEdit(foodId) {
     document.getElementById('food-edit-fat').value      = '';
     document.getElementById('food-edit-sat').value      = '';
     document.getElementById('food-edit-trans').value    = '';
+    document.getElementById('food-edit-barcode').value  = '';
   }
   openOverlay('ov-food-edit');
   setTimeout(() => document.getElementById('food-edit-name').focus(), 350);
@@ -86,13 +88,14 @@ export function submitFood() {
   const fat = parseNum(document.getElementById('food-edit-fat').value);
   const saturatedFat = parseNum(document.getElementById('food-edit-sat').value);
   const transFat = parseNum(document.getElementById('food-edit-trans').value);
+  const barcode = document.getElementById('food-edit-barcode').value.trim() || null;
   const eid = document.getElementById('food-edit-id').value;
   const state = store.state;
   if (eid) {
     const f = state.foods.find(f => f.id === eid);
-    if (f) { Object.assign(f, { name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat, saturatedFat, transFat }); cloudSyncFood(f); }
+    if (f) { Object.assign(f, { name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat, saturatedFat, transFat, barcode }); cloudSyncFood(f); }
   } else {
-    const food = { id: uid(), name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat, saturatedFat, transFat };
+    const food = { id: uid(), name, servingSize: srvSize, servingUnit: srvUnit, calories: cal, protein: pro, carbs: car, fat, saturatedFat, transFat, barcode };
     state.foods.push(food);
     cloudSyncFood(food);
   }

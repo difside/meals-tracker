@@ -62,6 +62,23 @@
 .signout-btn{padding:8px 14px;border:1.5px solid var(--border);border-radius:10px;background:none;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
 .signout-btn:hover{border-color:var(--danger);color:var(--danger)}
 
+/* Scan button */
+.btn-scan{padding:7px 12px;background:var(--bg);color:var(--text);border:1.5px solid var(--border);border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .15s}
+.btn-scan:hover{border-color:var(--primary);color:var(--primary)}
+
+/* Barcode scanner overlay */
+#ov-scanner{align-items:flex-end;background:rgba(0,0,0,.85)}
+#ov-scanner.open{opacity:1;pointer-events:all}
+.scanner-sheet{background:#111;border-radius:24px 24px 0 0;width:100%;max-width:480px;padding:0 0 40px;overflow:hidden}
+.scanner-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 10px}
+.scanner-title{font-size:17px;font-weight:800;color:#fff}
+.scanner-close{width:32px;height:32px;border:none;border-radius:50%;background:rgba(255,255,255,.15);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff}
+.scanner-hint{text-align:center;font-size:13px;color:rgba(255,255,255,.6);padding:0 20px 12px}
+.scanner-viewport{width:100%;aspect-ratio:1;position:relative;overflow:hidden;background:#000}
+.scanner-viewport video{width:100%!important;height:100%!important;object-fit:cover}
+#scanner-viewport>div{border:none!important}
+#qr-shaded-region{border:2px solid rgba(255,255,255,.5)!important;border-radius:8px!important;box-shadow:0 0 0 9999px rgba(0,0,0,.5)!important}
+
 /* Macro chips */
 .mchips{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}
 .mchip{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px}

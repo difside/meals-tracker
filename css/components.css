@@ -38,19 +38,31 @@
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:9px 20px;border-radius:999px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all .25s ease;pointer-events:none;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* Auth screen */
-#auth-screen{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
-.auth-wrap{width:100%;max-width:360px;text-align:center}
-.auth-logo{font-size:56px;margin-bottom:12px}
-.auth-title{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
-.auth-sub{font-size:14px;color:var(--muted);margin-bottom:32px}
-.auth-btn{width:100%;padding:14px;border:none;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s;margin-bottom:10px}
+/* Auth overlay */
+#auth-screen{position:fixed;inset:0;z-index:200;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:24px}
+#auth-screen.open{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.auth-wrap{width:100%;max-width:360px;text-align:center;background:var(--card);border-radius:24px;padding:28px 24px 32px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.auth-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border:none;border-radius:50%;background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.auth-logo{font-size:44px;margin-bottom:10px}
+.auth-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5}
+.auth-btn{width:100%;padding:13px;border:none;border-radius:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;transition:opacity .15s;margin-bottom:10px}
 .auth-btn:hover{opacity:.85}
-.auth-btn-google{background:#fff;color:#222;border:1.5px solid var(--border);box-shadow:var(--shadow)}
-.auth-btn-email{background:var(--primary);color:#fff;margin-top:8px}
-.auth-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--muted);font-size:13px}
+.auth-btn-google{background:var(--bg);color:var(--text);border:1.5px solid var(--border)}
+.auth-btn-email{background:var(--primary);color:#fff;margin-top:4px}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:13px}
 .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
 .auth-sent{background:var(--primary-light);color:var(--primary);padding:12px;border-radius:12px;font-size:13px;font-weight:600;margin-top:10px;display:none}
+
+/* Settings account card */
+.set-account-row{display:flex;align-items:center;gap:12px}
+.set-account-ic{font-size:28px}
+.set-account-info{flex:1}
+.set-account-status{font-size:14px;font-weight:700;color:var(--text)}
+.set-account-id{font-size:11px;color:var(--muted);font-family:monospace;margin-top:2px}
+.set-signout-btn{padding:7px 14px;border:1.5px solid var(--border);border-radius:10px;background:none;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap}
+.set-signout-btn:hover{border-color:var(--danger);color:var(--danger)}
 
 /* Loading overlay */
 #loading-screen{position:fixed;inset:0;z-index:150;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px}

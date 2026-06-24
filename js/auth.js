@@ -20,9 +20,10 @@ export function hideLoadingScreen() { document.getElementById('loading-screen').
 
 export async function signInWithGoogle() {
   if (!sb) { showToast('Auth unavailable — check connection'); return; }
+  const redirectTo = window.location.origin + window.location.pathname;
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.href },
+    options: { redirectTo },
   });
   if (error) showToast('Google sign-in error: ' + error.message);
 }
@@ -50,9 +51,12 @@ export async function signOut() {
   showToast('Signed out');
 }
 
+let _initializing = false;
 export async function init() {
+  if (_initializing) return;
+  _initializing = true;
   try {
-    if (!sb) { showAuthUI(); return; }
+    if (!sb) { showAuthUI(); _initializing = false; return; }
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { showAuthUI(); return; }
     store.currentUserId = session.user.id;
@@ -90,12 +94,18 @@ export async function init() {
     applyState(loadStateLocal());
     hideLoadingScreen();
     showAuthUI();
+  } finally {
+    _initializing = false;
   }
 }
 
 export function initAuthListener() {
-  if (!sb) return;
-  sb.auth.onAuthStateChange((event) => {
+  if (!sb) { showAuthUI(); return; }
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'INITIAL_SESSION') {
+      if (session) init();
+      else showAuthUI();
+    }
     if (event === 'SIGNED_IN') init();
     if (event === 'SIGNED_OUT') showAuthUI();
   });

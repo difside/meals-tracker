@@ -50,4 +50,3 @@ Object.assign(window, {
 
 // ---- Boot ----
 initAuthListener();
-init();

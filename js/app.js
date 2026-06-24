@@ -1,5 +1,5 @@
 import { store } from './store.js';
-import { init, initAuthListener, signInWithGoogle, signInWithEmail, signOut } from './auth.js';
+import { init, initAuthListener, signInWithGoogle, signInWithEmail, signOut, openAuthOverlay, closeAuthOverlay, handleAuthOverlayClick, handleAuthHdrBtn } from './auth.js';
 import { openOverlay, closeOverlay, overlayClick, toggleCheck, selectPill } from './ui.js';
 import { renderDay, toggleSection, shiftDate, openDatePicker, jumpToDate } from './day.js';
 import { openAddMeal, setMealSource, filterFoodPicker, selectFoodForMeal, updateFromFood, addFoodToMeal, removeMealFoodItem, openMealEdit, openAddMealWithFood, submitMeal, deleteMeal, saveMealToFav, openFromFav, addFavToDay, quickAddFav } from './meals.js';
@@ -23,7 +23,7 @@ function switchView(v) {
 // ---- Expose all functions used in inline HTML onclick handlers ----
 Object.assign(window, {
   // auth
-  signInWithGoogle, signInWithEmail, signOut,
+  signInWithGoogle, signInWithEmail, signOut, openAuthOverlay, closeAuthOverlay, handleAuthOverlayClick, handleAuthHdrBtn,
   // overlays
   openOverlay, closeOverlay, overlayClick, toggleCheck,
   // day view

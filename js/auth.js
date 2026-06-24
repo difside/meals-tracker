@@ -1,22 +1,36 @@
 import { sb, loadStateCloud, migrateToCloud } from './db.js';
 import { store, applyState, loadStateLocal, defaultState } from './store.js';
-import { showToast, todayStr } from './utils.js';
+import { showToast } from './utils.js';
 import { renderDay } from './day.js';
+import { renderSettings } from './settings.js';
 
-export function showAuthUI() {
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('signout-btn').style.display = 'none';
+// ---- Auth overlay (not a blocking screen) ----
+
+export function openAuthOverlay() {
+  document.getElementById('auth-screen').classList.add('open');
+  document.getElementById('auth-email-sent').style.display = 'none';
+  document.getElementById('auth-email').value = '';
 }
 
-export function hideAuthUI() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app').style.display = '';
-  document.getElementById('signout-btn').style.display = '';
+export function closeAuthOverlay() {
+  document.getElementById('auth-screen').classList.remove('open');
 }
+
+export function handleAuthOverlayClick(e) {
+  if (e.target === document.getElementById('auth-screen')) closeAuthOverlay();
+}
+
+export function handleAuthHdrBtn() {
+  if (store.currentUserId) signOut();
+  else openAuthOverlay();
+}
+
+// ---- Loading screen ----
 
 export function showLoadingScreen() { document.getElementById('loading-screen').style.display = 'flex'; }
 export function hideLoadingScreen() { document.getElementById('loading-screen').style.display = 'none'; }
+
+// ---- Sign in ----
 
 export async function signInWithGoogle() {
   if (!sb) { showToast('Auth unavailable — check connection'); return; }
@@ -43,25 +57,50 @@ export async function signInWithEmail() {
   document.getElementById('auth-email-sent').style.display = 'block';
 }
 
+// ---- Sign out ----
+
 export async function signOut() {
   if (sb) await sb.auth.signOut();
   store.currentUserId = null;
-  applyState(defaultState());
-  showAuthUI();
-  showToast('Signed out');
+  applyState(loadStateLocal());
+  _updateHeaderBtn();
+  renderDay();
+  renderSettings();
+  showToast('Signed out — data saved locally');
 }
+
+// ---- Boot helpers ----
+
+function _bootLocal() {
+  applyState(loadStateLocal());
+  if (!store.state.foods) store.state.foods = [];
+  const n = new Date();
+  store.calYear  = n.getFullYear();
+  store.calMonth = n.getMonth();
+  _updateHeaderBtn();
+  renderDay();
+  renderSettings();
+}
+
+function _updateHeaderBtn() {
+  const btn = document.getElementById('auth-hdr-btn');
+  if (!btn) return;
+  btn.textContent = store.currentUserId ? 'Sign out' : 'Sign in';
+}
+
+// ---- Main init (cloud login) ----
 
 let _initializing = false;
 export async function init() {
   if (_initializing) return;
   _initializing = true;
   try {
-    if (!sb) { showAuthUI(); _initializing = false; return; }
+    if (!sb) { _bootLocal(); return; }
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { showAuthUI(); return; }
-    store.currentUserId = session.user.id;
+    if (!session) { _bootLocal(); return; }
 
-    hideAuthUI();
+    store.currentUserId = session.user.id;
+    closeAuthOverlay();
     showLoadingScreen();
 
     try {
@@ -88,25 +127,27 @@ export async function init() {
     store.calYear  = n.getFullYear();
     store.calMonth = n.getMonth();
     hideLoadingScreen();
+    _updateHeaderBtn();
     renderDay();
+    renderSettings();
   } catch (e) {
     console.error('Init error:', e);
-    applyState(loadStateLocal());
-    hideLoadingScreen();
-    showAuthUI();
+    _bootLocal();
   } finally {
     _initializing = false;
   }
 }
 
+// ---- Auth state listener ----
+
 export function initAuthListener() {
-  if (!sb) { showAuthUI(); return; }
+  if (!sb) { _bootLocal(); return; }
   sb.auth.onAuthStateChange((event, session) => {
     if (event === 'INITIAL_SESSION') {
       if (session) init();
-      else showAuthUI();
+      else _bootLocal();
     }
     if (event === 'SIGNED_IN') init();
-    if (event === 'SIGNED_OUT') showAuthUI();
+    if (event === 'SIGNED_OUT') { /* handled in signOut() */ }
   });
 }
